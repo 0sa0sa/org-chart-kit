@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { OrgMap, OrgTree, useOrgEditor } from 'org-chart-kit/react';
+import { OrgMap, OrgTree, useOrgEditor, type OrgTheme } from 'org-chart-kit/react';
 import { sampleOrg } from './fixtures';
 
 type Mode = 'a' | 'b' | 'split';
@@ -19,6 +19,9 @@ export function App() {
     return h === 'a' || h === 'b' || h === 'split' ? h : 'a';
   });
   useEffect(() => void history.replaceState(null, '', `#${mode}`), [mode]);
+  // 配色のプリセット（'default' は各ビューの既定: ツリー=dark / 地図=light）と、アクセント色の上書き
+  const [theme, setTheme] = useState<'default' | OrgTheme>('default');
+  const [accent, setAccent] = useState('');
 
   return (
     <div className={`app mode-${mode}`}>
@@ -30,15 +33,36 @@ export function App() {
           </button>
         ))}
         <span className="switch-count" title="共有中の変更数">Δ {editor.changes.length}</span>
+        <select className="switch-theme" aria-label="配色" value={theme} onChange={(e) => setTheme(e.target.value as typeof theme)}>
+          <option value="default">配色: 既定</option>
+          <option value="light">light</option>
+          <option value="dark">dark</option>
+          <option value="auto">auto</option>
+        </select>
+        <label className="switch-accent" title="アクセント色（ツリーの accent / 地図の seal）">
+          <input type="color" value={accent || '#3df08c'} onChange={(e) => setAccent(e.target.value)} />
+          {accent && <button onClick={() => setAccent('')} aria-label="アクセント色を戻す">×</button>}
+        </label>
       </div>
       {mode !== 'b' && (
         <div className="pane">
-          <OrgTree store={editor} eyebrow="org-chart-kit · OrgTree" />
+          <OrgTree
+            store={editor}
+            eyebrow="org-chart-kit · OrgTree"
+            theme={theme === 'default' ? 'dark' : theme}
+            tokens={accent ? { accent } : undefined}
+          />
         </div>
       )}
       {mode !== 'a' && (
         <div className="pane">
-          <OrgMap store={editor} subtitle="ORG-CHART-KIT · ORGMAP" planLabel="第一稿　二〇二六年九月" />
+          <OrgMap
+            store={editor}
+            subtitle="ORG-CHART-KIT · ORGMAP"
+            planLabel="第一稿　二〇二六年九月"
+            theme={theme === 'default' ? 'light' : theme}
+            tokens={accent ? { seal: accent } : undefined}
+          />
         </div>
       )}
     </div>

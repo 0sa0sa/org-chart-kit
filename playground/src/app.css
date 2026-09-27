@@ -57,3 +57,17 @@ body { overflow: hidden; background: #111; }
 .mode-split .ock-map .t-spine { width: 44px; padding-top: 70px; }
 .mode-split .ock-map .t-spine-title { font-size: 22px; }
 .mode-split .ock-map .t-crumbs { top: 62px; }
+
+.switch-theme {
+  margin-left: 2px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 999px;
+  background: #2a2a2a;
+  color: #ddd;
+  font: inherit;
+  font-size: 11px;
+}
+.switch-accent { display: flex; align-items: center; gap: 2px; padding: 0 8px 0 4px; }
+.switch-accent input { width: 22px; height: 22px; padding: 0; border: 0; border-radius: 50%; background: none; cursor: pointer; }
+.switch-accent button { border: 0; background: none; color: #8a8a8a; cursor: pointer; font-size: 12px; }

@@ -119,6 +119,36 @@ const planN = await page.locator('.t-plan li').count();
 check('split: 両ビューが同じ変更を表示', logN === planN && logN === (await count()), `${logN} / ${planN}`);
 await shot('split');
 
+// ── テーマ：プリセットとトークン上書き ──
+{
+  const probe = (sel) =>
+    page.evaluate((sel) => {
+      const el = document.querySelector(sel);
+      const cs = getComputedStyle(el);
+      return { bg: cs.backgroundColor, accent: cs.getPropertyValue('--_ock-accent').trim(), seal: cs.getPropertyValue('--_ock-seal').trim() };
+    }, sel);
+  const treeDark = await probe('.ock-tree');
+  const mapLight = await probe('.ock-map');
+  await page.selectOption('.switch-theme', 'light');
+  await page.waitForTimeout(400);
+  const treeLight = await probe('.ock-tree');
+  check('theme: ツリーを light に切替', treeDark.bg !== treeLight.bg && treeLight.bg === 'rgb(245, 244, 239)', treeLight.bg);
+  await page.selectOption('.switch-theme', 'dark');
+  await page.waitForTimeout(400);
+  const mapDark = await probe('.ock-map');
+  check('theme: 地図を dark に切替', mapLight.bg !== mapDark.bg && mapDark.bg === 'rgb(20, 18, 14)', mapDark.bg);
+  await shot('themes-dark');
+  await page.selectOption('.switch-theme', 'light');
+  await page.fill('.switch-accent input', '#ff6600');
+  await page.waitForTimeout(400);
+  const t = await probe('.ock-tree');
+  const m = await probe('.ock-map');
+  check('tokens: アクセント色を上書き', t.accent === '#ff6600' && m.seal === '#ff6600', `${t.accent} / ${m.seal}`);
+  await shot('themes-light-accent');
+  await page.click('.switch-accent button');
+  await page.selectOption('.switch-theme', 'default');
+}
+
 check('コンソールエラーなし', errors.length === 0, errors.join(' | '));
 await browser.close();
 process.exit(failed ? 1 : 0);

@@ -61,9 +61,80 @@ type OrgState = { orgs: Record<string, Org>; members: Record<string, Member> };
 - `revertAction(cur, change)` は、その変更1件だけを戻す操作を返します。
 - `describe(base, cur, change)` は、変更1件を「誰が・どこから・どこへ」に分解して返します。
 
+## テーマ
+
+### プリセット
+
+`theme` に `'light' | 'dark' | 'auto'` を指定できます。`'auto'` は OS の配色設定（prefers-color-scheme）に従います。既定は、OrgTree が `'dark'`、OrgMap が `'light'` です。
+
+```tsx
+<OrgTree store={editor} theme="light" />
+<OrgMap store={editor} theme="auto" />
+```
+
+| dark（ツリー既定 / 地図） | light（ツリー / 地図既定）＋ アクセント色を上書き |
+|---|---|
+| ![dark](docs/themes-dark.png) | ![light](docs/themes-light-accent.png) |
+
+### トークン（CSS 変数 `--ock-*`）
+
+色とフォントは、すべて `--ock-*` の CSS 変数で上書きできます。上書きのしかたは次の3通りで、どれでも同じ結果になります。**利用側で指定した値が、常にプリセットより優先されます。**
+
+```tsx
+// 1. tokens prop（型が付く）
+<OrgTree store={editor} tokens={{ accent: '#ff6600', 'font-body': "'IBM Plex Mono', monospace" }} />
+```
+```css
+/* 2. 祖先要素で（アプリ全体のテーマに合わせるとき） */
+.my-app { --ock-accent: #ff6600; --ock-seal: #ff6600; }
+
+/* 3. 特定のビューだけ */
+.ock-map.brand { --ock-grain: none; }
+```
+
+`accent-soft` のように「自動計算」と書いたトークンは、元の色（`accent` など）から `color-mix()` で作っています。元の色だけを変えれば、これらも追従します。直接上書きしても構いません。
+
+**共通**（OrgTree / OrgMap）
+
+| トークン | 用途 |
+|---|---|
+| `bg` | 背景 |
+| `surface` / `surface-2` | パネル・カードの面 / 一段沈んだ面 |
+| `text` / `text-2` / `text-3` | 本文と線の基本色 / 補助テキスト / 淡いテキスト |
+| `font-body` | 本文フォント（`font-family` の値） |
+
+**OrgTree**
+
+| トークン | 用途 |
+|---|---|
+| `border` / `border-strong` | 罫線 |
+| `accent` | 選択・確定・コアの色（既定は緑） |
+| `accent-soft` / `accent-line` / `glow` | accent の淡い面・淡い線・発光（自動計算） |
+| `member` | メンバーの点 |
+| `danger` | 移せない・解散 |
+| `changed` | 変更あり（Δ）の印と、変更ログの動詞 |
+| `grid` | 背景のドット |
+| `shadow` | 詳細パネルの影 |
+
+**OrgMap**
+
+| トークン | 用途 |
+|---|---|
+| `font-display` | 見出し・組織名・石の文字 |
+| `seal` | 朱。責任者の印・異動の糸・落とし先 |
+| `seal-soft` / `seal-edge` | 朱の淡い面 / 印の縁（自動計算） |
+| `on-seal` | 朱の上に載る文字 |
+| `select` / `select-soft` | 藍。選択中の区画・石 / その淡い面（自動計算） |
+| `drop` | 落とせる区画の塗り（`seal` と `surface` から自動計算） |
+| `depth-1` 〜 `depth-4` | 区画の塗り（深い区画ほど濃く） |
+| `tip-accent` | ツールチップに出る所属名 |
+| `grain` | 紙の質感（`background-image` の値。`none` で無地） |
+
+トークン名は `ORG_TREE_TOKENS` / `ORG_MAP_TOKENS` としても export しています。型定義と CSS のあいだで過不足がないことは、テスト（`test/theme.test.ts`）で確認しています。
+
 ## フォント
 
-ライブラリ自体はフォントを読み込みません。次のフォントがあることを前提にしていて、ない場合は代わりのフォントで表示されます。
+ライブラリ自体はフォントを読み込みません。既定では次のフォントがあることを前提にしていて、ない場合は代わりのフォントで表示されます。別のフォントにしたい場合は、`font-body` / `font-display` トークンで差し替えてください。
 
 - OrgTree: JetBrains Mono
 - OrgMap: Shippori Mincho B1 / Zen Kaku Gothic New
@@ -72,7 +143,7 @@ type OrgState = { orgs: Record<string, Org>; members: Record<string, Member> };
 
 ```bash
 bun install
-bun run test        # コアの単体テスト（vitest）
+bun run test        # コアとテーマトークンの単体テスト（vitest）
 bun run build       # dist/ に index / react / styles.css と型定義を出力し、コアが React に依存していないことも検査
 bun run dev         # playground（http://localhost:5191, #a / #b / #split）
 bun run e2e         # playground を実ブラウザで操作するスモークテスト（dev を起動しておく）

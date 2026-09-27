@@ -17,6 +17,7 @@ import {
 } from '../../core/model';
 import { describe } from '../../core/describe';
 import type { OrgEditor } from '../useOrgEditor';
+import { tokenStyle, type OrgTheme, type OrgTreeToken, type Tokens } from '../theme';
 import { useSize } from '../useSize';
 
 /**
@@ -45,12 +46,16 @@ export type OrgTreeProps = {
   /** 見出し。null でヘッダーごと隠す */
   title?: string | null;
   eyebrow?: string;
+  /** 配色のプリセット（既定 'dark'） */
+  theme?: OrgTheme;
+  /** 個別の色・フォントの上書き（CSS 変数 --ock-* と同じ。祖先要素の CSS で指定してもよい） */
+  tokens?: Tokens<OrgTreeToken>;
   className?: string;
   style?: CSSProperties;
 };
 
 /** 親要素いっぱいに広がる（親に高さが必要）。スタイルは `org-chart-kit/styles.css`。 */
-export function OrgTree({ store, title = '組織グラフ', eyebrow = 'org chart', className, style }: OrgTreeProps) {
+export function OrgTree({ store, title = '組織グラフ', eyebrow = 'org chart', theme = 'dark', tokens, className, style }: OrgTreeProps) {
   const uid = useId().replace(/:/g, '');
   const { state, changes, dispatch } = store;
   const [wrapRef, size] = useSize<HTMLDivElement>();
@@ -284,7 +289,7 @@ export function OrgTree({ store, title = '組織グラフ', eyebrow = 'org chart
   const b = layout.bounds;
 
   return (
-    <div className={`ock-tree${className ? ` ${className}` : ''}`} style={style}>
+    <div className={`ock-tree${className ? ` ${className}` : ''}`} data-ock-theme={theme} style={tokenStyle(tokens, style)}>
       {title !== null && (
       <header className="brain-head">
         <div>
@@ -317,8 +322,8 @@ export function OrgTree({ store, title = '組織グラフ', eyebrow = 'org chart
           >
             <defs>
               <radialGradient id={`${uid}-core`} r="1">
-                <stop offset="0" stopColor="var(--accent)" stopOpacity="0.35" />
-                <stop offset="1" stopColor="var(--accent)" stopOpacity="0" />
+                <stop offset="0" stopColor="var(--_ock-accent)" stopOpacity="0.35" />
+                <stop offset="1" stopColor="var(--_ock-accent)" stopOpacity="0" />
               </radialGradient>
             </defs>
             <g transform={`translate(${cam.x},${cam.y}) scale(${cam.k})`}>

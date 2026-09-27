@@ -1,32 +1,73 @@
-/* Variant A — FounderOS G-Brain のパレット（dark monolith）を踏襲 */
-.ock-tree {
-  --bg: #050807;
-  --surface: #0a0f0c;
-  --surface-2: #0f1511;
-  --border: #18211b;
-  --border-strong: #243029;
-  --text: #e4efe6;
-  --text-2: #8fa295;
-  --text-3: #54665b;
-  --accent: #3df08c;
-  --accent-line: rgba(61, 240, 140, 0.25);
-  --accent-soft: rgba(61, 240, 140, 0.08);
-  --warn: #ffc53d;
-  --err: #ff6259;
-  --brain-1: #8b7cff;
-  --brain-2: #5ec9f8;
-  --grid: rgba(228, 239, 230, 0.035);
+/* OrgTree — FounderOS G-Brain のパレット（dark monolith）を踏襲。
+   公開トークンは --ock-*（祖先要素・ルート・tokens prop のどこで上書きしてもよい）。
+   内部では --_ock-* = var(--ock-*, テーマ既定値) を参照する。 */
+.ock-tree,
+.ock-tree[data-ock-theme='dark'] {
+  --_ock-bg: var(--ock-bg, #050807);
+  --_ock-surface: var(--ock-surface, #0a0f0c);
+  --_ock-surface-2: var(--ock-surface-2, #0f1511);
+  --_ock-border: var(--ock-border, #18211b);
+  --_ock-border-strong: var(--ock-border-strong, #243029);
+  --_ock-text: var(--ock-text, #e4efe6);
+  --_ock-text-2: var(--ock-text-2, #8fa295);
+  --_ock-text-3: var(--ock-text-3, #54665b);
+  --_ock-accent: var(--ock-accent, #3df08c);
+  --_ock-member: var(--ock-member, #ffc53d);
+  --_ock-danger: var(--ock-danger, #ff6259);
+  --_ock-changed: var(--ock-changed, #5ec9f8);
+  --_ock-grid: var(--ock-grid, rgba(228, 239, 230, 0.035));
+  --_ock-shadow: var(--ock-shadow, rgba(0, 0, 0, 0.45));
+  --_ock-font-body: var(--ock-font-body, 'JetBrains Mono', 'M PLUS 1 Code', ui-monospace, monospace);
+  --_ock-accent-soft: var(--ock-accent-soft, color-mix(in srgb, var(--_ock-accent) 8%, transparent));
+  --_ock-accent-line: var(--ock-accent-line, color-mix(in srgb, var(--_ock-accent) 25%, transparent));
+  --_ock-glow: var(--ock-glow, color-mix(in srgb, var(--_ock-accent) 45%, transparent));
+}
+.ock-tree[data-ock-theme='light'] {
+  --_ock-bg: var(--ock-bg, #f5f4ef);
+  --_ock-surface: var(--ock-surface, #ffffff);
+  --_ock-surface-2: var(--ock-surface-2, #eeece5);
+  --_ock-border: var(--ock-border, #e2dfd5);
+  --_ock-border-strong: var(--ock-border-strong, #cdc8ba);
+  --_ock-text: var(--ock-text, #16201a);
+  --_ock-text-2: var(--ock-text-2, #55625a);
+  --_ock-text-3: var(--ock-text-3, #8d978f);
+  --_ock-accent: var(--ock-accent, #0c9a55);
+  --_ock-member: var(--ock-member, #d08a00);
+  --_ock-danger: var(--ock-danger, #d43d31);
+  --_ock-changed: var(--ock-changed, #1f7ccc);
+  --_ock-grid: var(--ock-grid, rgba(22, 32, 26, 0.07));
+  --_ock-shadow: var(--ock-shadow, rgba(40, 36, 28, 0.14));
+}
+@media (prefers-color-scheme: light) {
+.ock-tree[data-ock-theme='auto'] {
+  --_ock-bg: var(--ock-bg, #f5f4ef);
+  --_ock-surface: var(--ock-surface, #ffffff);
+  --_ock-surface-2: var(--ock-surface-2, #eeece5);
+  --_ock-border: var(--ock-border, #e2dfd5);
+  --_ock-border-strong: var(--ock-border-strong, #cdc8ba);
+  --_ock-text: var(--ock-text, #16201a);
+  --_ock-text-2: var(--ock-text-2, #55625a);
+  --_ock-text-3: var(--ock-text-3, #8d978f);
+  --_ock-accent: var(--ock-accent, #0c9a55);
+  --_ock-member: var(--ock-member, #d08a00);
+  --_ock-danger: var(--ock-danger, #d43d31);
+  --_ock-changed: var(--ock-changed, #1f7ccc);
+  --_ock-grid: var(--ock-grid, rgba(22, 32, 26, 0.07));
+  --_ock-shadow: var(--ock-shadow, rgba(40, 36, 28, 0.14));
+}
+}
 
+.ock-tree {
   position: absolute;
   inset: 0;
   display: flex;
   flex-direction: column;
   background:
-    radial-gradient(ellipse at 50% 55%, rgba(61, 240, 140, 0.05), transparent 60%),
-    radial-gradient(circle, var(--grid) 1px, transparent 1.2px) 0 0 / 22px 22px,
-    var(--bg);
-  color: var(--text);
-  font-family: 'JetBrains Mono', 'M PLUS 1 Code', ui-monospace, monospace;
+    radial-gradient(ellipse at 50% 30%, color-mix(in srgb, var(--_ock-accent) 5%, transparent), transparent 60%),
+    radial-gradient(circle, var(--_ock-grid) 1px, transparent 1.2px) 0 0 / 22px 22px,
+    var(--_ock-bg);
+  color: var(--_ock-text);
+  font-family: var(--_ock-font-body);
   font-size: 12px;
 }
 .ock-tree button,
@@ -41,14 +82,14 @@
   align-items: flex-end;
   justify-content: space-between;
   padding: 18px 22px 12px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--_ock-border);
 }
 .ock-tree .brain-eyebrow,
 .ock-tree .brain-section-label {
   font-size: 10px;
   letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--text-3);
+  color: var(--_ock-text-3);
 }
 .ock-tree .brain-title {
   margin: 4px 0 0;
@@ -57,7 +98,7 @@
   letter-spacing: -0.01em;
 }
 .ock-tree .brain-caret {
-  color: var(--accent);
+  color: var(--_ock-accent);
   animation: ock-brain-blink 1.1s steps(1) infinite;
 }
 @keyframes ock-brain-blink {
@@ -67,14 +108,14 @@
   display: flex;
   gap: 16px;
   font-size: 10.5px;
-  color: var(--text-2);
+  color: var(--_ock-text-2);
 }
 .ock-tree .brain-legend span { display: flex; align-items: center; gap: 6px; }
 .ock-tree .brain-legend i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
-.ock-tree .lg-org { border: 1.5px solid var(--text); }
-.ock-tree .lg-mem { background: var(--warn); }
-.ock-tree .lg-head { background: var(--bg); box-shadow: 0 0 0 2px var(--text); }
-.ock-tree .lg-delta { border: 1.5px dashed var(--brain-2); }
+.ock-tree .lg-org { border: 1.5px solid var(--_ock-text); }
+.ock-tree .lg-mem { background: var(--_ock-member); }
+.ock-tree .lg-head { background: var(--_ock-bg); box-shadow: 0 0 0 2px var(--_ock-text); }
+.ock-tree .lg-delta { border: 1.5px dashed var(--_ock-changed); }
 
 .ock-tree .brain-body {
   flex: 1;
@@ -86,10 +127,10 @@
 .ock-tree .brain-dir {
   width: 236px;
   flex-shrink: 0;
-  border-right: 1px solid var(--border);
+  border-right: 1px solid var(--_ock-border);
   padding: 14px 0;
   overflow: auto;
-  background: rgba(10, 15, 12, 0.6);
+  background: color-mix(in srgb, var(--_ock-surface) 60%, transparent);
 }
 .ock-tree .brain-dir .brain-section-label { padding: 0 14px 8px; }
 .ock-tree .brain-dir ul { list-style: none; margin: 0; padding: 0; }
@@ -99,17 +140,17 @@
   gap: 6px;
   padding: 5px 12px 5px 10px;
   cursor: pointer;
-  color: var(--text-2);
+  color: var(--_ock-text-2);
   border-left: 2px solid transparent;
   white-space: nowrap;
 }
-.ock-tree .brain-dir li:hover { color: var(--text); background: var(--surface-2); }
-.ock-tree .brain-dir li.is-sel { color: var(--accent); border-left-color: var(--accent); background: var(--accent-soft); }
-.ock-tree .brain-dir li.is-over { outline: 1px dashed var(--accent); outline-offset: -2px; }
-.ock-tree .dir-branch { color: var(--text-3); font-size: 10px; }
+.ock-tree .brain-dir li:hover { color: var(--_ock-text); background: var(--_ock-surface-2); }
+.ock-tree .brain-dir li.is-sel { color: var(--_ock-accent); border-left-color: var(--_ock-accent); background: var(--_ock-accent-soft); }
+.ock-tree .brain-dir li.is-over { outline: 1px dashed var(--_ock-accent); outline-offset: -2px; }
+.ock-tree .dir-branch { color: var(--_ock-text-3); font-size: 10px; }
 .ock-tree .dir-name { flex: 1; overflow: hidden; text-overflow: ellipsis; }
-.ock-tree .dir-delta { color: var(--brain-2); font-size: 10px; }
-.ock-tree .dir-count { color: var(--text-3); font-size: 10px; }
+.ock-tree .dir-delta { color: var(--_ock-changed); font-size: 10px; }
+.ock-tree .dir-count { color: var(--_ock-text-3); font-size: 10px; }
 
 /* ── canvas ── */
 .ock-tree .brain-canvas {
@@ -121,52 +162,52 @@
 .ock-tree .brain-canvas svg { display: block; cursor: grab; touch-action: none; user-select: none; }
 .ock-tree .brain-canvas svg.is-dragging { cursor: grabbing; }
 
-.ock-tree .kg-ring { fill: none; stroke: var(--border-strong); stroke-dasharray: 2 6; }
-.ock-tree .kg-ring-label { fill: var(--text-3); text-anchor: middle; letter-spacing: 0.1em; }
+.ock-tree .kg-ring { fill: none; stroke: var(--_ock-border-strong); stroke-dasharray: 2 6; }
+.ock-tree .kg-ring-label { fill: var(--_ock-text-3); text-anchor: middle; letter-spacing: 0.1em; }
 
 .ock-tree .kg-edge { fill: none; transition: opacity 0.35s var(--ease, ease); }
-.ock-tree .kg-edge-org { stroke: var(--text-2); stroke-opacity: 0.45; stroke-width: 1.1; }
-.ock-tree .kg-edge-member { stroke: var(--warn); stroke-opacity: 0.16; stroke-width: 0.7; }
-.ock-tree .kg-edge.is-hot.kg-edge-org { stroke: var(--accent); stroke-opacity: 0.85; }
+.ock-tree .kg-edge-org { stroke: var(--_ock-text-2); stroke-opacity: 0.45; stroke-width: 1.1; }
+.ock-tree .kg-edge-member { stroke: var(--_ock-member); stroke-opacity: 0.16; stroke-width: 0.7; }
+.ock-tree .kg-edge.is-hot.kg-edge-org { stroke: var(--_ock-accent); stroke-opacity: 0.85; }
 .ock-tree .kg-edge.is-hot.kg-edge-member { stroke-opacity: 0.5; }
 .ock-tree .kg-edge.is-detaching { stroke-dasharray: 3 4; stroke-opacity: 0.25; }
 
 .ock-tree .kg-node { cursor: pointer; transition: opacity 0.35s ease; }
 .ock-tree .kg-node.is-drag { cursor: grabbing; }
-.ock-tree .kg-org .kg-dot { fill: var(--bg); stroke: var(--text); stroke-width: 1.4; }
-.ock-tree .kg-org .kg-core { fill: var(--text); opacity: 0.85; }
-.ock-tree .kg-org:hover .kg-dot { stroke: var(--accent); }
-.ock-tree .kg-org.is-root .kg-dot { stroke: var(--accent); stroke-width: 2; filter: drop-shadow(0 0 8px rgba(61, 240, 140, 0.6)); }
-.ock-tree .kg-org.is-root .kg-core { fill: var(--accent); }
-.ock-tree .kg-member .kg-dot { fill: var(--warn); }
-.ock-tree .kg-member .kg-dot.is-head { fill: var(--bg); stroke: var(--text); stroke-width: 2; }
-.ock-tree .kg-member:hover .kg-dot { fill: var(--text); }
-.ock-tree .kg-sel { fill: none; stroke: var(--accent); stroke-width: 1.4; }
+.ock-tree .kg-org .kg-dot { fill: var(--_ock-bg); stroke: var(--_ock-text); stroke-width: 1.4; }
+.ock-tree .kg-org .kg-core { fill: var(--_ock-text); opacity: 0.85; }
+.ock-tree .kg-org:hover .kg-dot { stroke: var(--_ock-accent); }
+.ock-tree .kg-org.is-root .kg-dot { stroke: var(--_ock-accent); stroke-width: 2; filter: drop-shadow(0 0 8px var(--_ock-glow)); }
+.ock-tree .kg-org.is-root .kg-core { fill: var(--_ock-accent); }
+.ock-tree .kg-member .kg-dot { fill: var(--_ock-member); }
+.ock-tree .kg-member .kg-dot.is-head { fill: var(--_ock-bg); stroke: var(--_ock-text); stroke-width: 2; }
+.ock-tree .kg-member:hover .kg-dot { fill: var(--_ock-text); }
+.ock-tree .kg-sel { fill: none; stroke: var(--_ock-accent); stroke-width: 1.4; }
 .ock-tree .kg-delta {
   fill: none;
-  stroke: var(--brain-2);
+  stroke: var(--_ock-changed);
   stroke-width: 1.2;
   stroke-dasharray: 3 3;
   animation: ock-kg-spin 6s linear infinite;
 }
 @keyframes ock-kg-spin { to { stroke-dashoffset: -60; } }
 .ock-tree .kg-label {
-  fill: var(--text-2);
+  fill: var(--_ock-text-2);
   text-anchor: middle;
   paint-order: stroke;
-  stroke: var(--bg);
+  stroke: var(--_ock-bg);
   stroke-width: 3px;
   pointer-events: none;
 }
-.ock-tree .kg-label-org { fill: var(--text); font-weight: 500; }
-.ock-tree .kg-count { fill: var(--text-3); }
+.ock-tree .kg-label-org { fill: var(--_ock-text); font-weight: 500; }
+.ock-tree .kg-count { fill: var(--_ock-text-3); }
 
 .ock-tree .kg-ghost path { fill: none; stroke-width: 1.6; stroke-dasharray: 5 4; animation: ock-kg-spin 1.2s linear infinite; }
 .ock-tree .kg-ghost circle { fill: none; stroke-width: 1.5; animation: ock-kg-pulse 0.9s ease-in-out infinite alternate; }
 .ock-tree .kg-ghost.ok path,
-.ock-tree .kg-ghost.ok circle { stroke: var(--accent); }
+.ock-tree .kg-ghost.ok circle { stroke: var(--_ock-accent); }
 .ock-tree .kg-ghost.ng path,
-.ock-tree .kg-ghost.ng circle { stroke: var(--err); }
+.ock-tree .kg-ghost.ng circle { stroke: var(--_ock-danger); }
 @keyframes ock-kg-pulse { from { stroke-opacity: 0.3; } to { stroke-opacity: 1; } }
 
 .ock-tree .brain-drop-hint {
@@ -175,20 +216,20 @@
   left: 50%;
   transform: translateX(-50%);
   padding: 6px 12px;
-  border: 1px solid var(--border-strong);
-  background: var(--surface);
-  color: var(--text-2);
+  border: 1px solid var(--_ock-border-strong);
+  background: var(--_ock-surface);
+  color: var(--_ock-text-2);
   pointer-events: none;
 }
-.ock-tree .brain-drop-hint.ok { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 24px rgba(61, 240, 140, 0.18); }
-.ock-tree .brain-drop-hint.ng { border-color: var(--err); color: var(--err); }
+.ock-tree .brain-drop-hint.ok { border-color: var(--_ock-accent); color: var(--_ock-accent); box-shadow: 0 0 24px color-mix(in srgb, var(--_ock-accent) 18%, transparent); }
+.ock-tree .brain-drop-hint.ng { border-color: var(--_ock-danger); color: var(--_ock-danger); }
 
 .ock-tree .brain-hint {
   position: absolute;
   right: 14px;
   bottom: 12px;
   font-size: 10px;
-  color: var(--text-3);
+  color: var(--_ock-text-3);
   letter-spacing: 0.04em;
   pointer-events: none;
 }
@@ -202,8 +243,8 @@
   max-height: 42%;
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--border-strong);
-  background: rgba(10, 15, 12, 0.92);
+  border: 1px solid var(--_ock-border-strong);
+  background: color-mix(in srgb, var(--_ock-surface) 92%, transparent);
   backdrop-filter: blur(6px);
 }
 .ock-tree .log-head {
@@ -211,25 +252,25 @@
   justify-content: space-between;
   align-items: center;
   padding: 7px 10px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--_ock-border);
 }
 .ock-tree .brain-log.is-closed .log-head { border-bottom: 0; }
-.ock-tree .log-toggle { background: none; border: 0; cursor: pointer; letter-spacing: 0.1em; text-transform: uppercase; font-size: 10.5px; color: var(--text-2); }
-.ock-tree .log-toggle b { color: var(--accent); margin-left: 4px; }
+.ock-tree .log-toggle { background: none; border: 0; cursor: pointer; letter-spacing: 0.1em; text-transform: uppercase; font-size: 10.5px; color: var(--_ock-text-2); }
+.ock-tree .log-toggle b { color: var(--_ock-accent); margin-left: 4px; }
 .ock-tree .log-tools { display: flex; gap: 4px; }
 .ock-tree .log-tools button,
 .ock-tree .insp-actions button,
 .ock-tree .insp-chips button {
   background: none;
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--_ock-border-strong);
   padding: 3px 8px;
   cursor: pointer;
   font-size: 10.5px;
-  color: var(--text-2);
+  color: var(--_ock-text-2);
 }
 .ock-tree .log-tools button:hover:not(:disabled),
 .ock-tree .insp-actions button:hover:not(:disabled),
-.ock-tree .insp-chips button:hover { border-color: var(--accent); color: var(--accent); }
+.ock-tree .insp-chips button:hover { border-color: var(--_ock-accent); color: var(--_ock-accent); }
 .ock-tree button:disabled { opacity: 0.3; cursor: default; }
 .ock-tree .brain-log ol { list-style: none; margin: 0; padding: 6px 0; overflow: auto; }
 .ock-tree .brain-log li {
@@ -240,23 +281,23 @@
   font-size: 11px;
   white-space: nowrap;
 }
-.ock-tree .brain-log li:hover { background: var(--surface-2); }
-.ock-tree .log-verb { color: var(--brain-2); width: 3.4em; flex-shrink: 0; }
-.ock-tree .log-subj { color: var(--text); }
-.ock-tree .log-from { color: var(--text-3); text-decoration: line-through; overflow: hidden; text-overflow: ellipsis; }
-.ock-tree .log-to { color: var(--accent); overflow: hidden; text-overflow: ellipsis; }
-.ock-tree .log-rev { margin-left: auto; background: none; border: 0; color: var(--text-3); cursor: pointer; }
-.ock-tree .log-rev:hover { color: var(--warn); }
-.ock-tree .log-empty { color: var(--text-3); }
+.ock-tree .brain-log li:hover { background: var(--_ock-surface-2); }
+.ock-tree .log-verb { color: var(--_ock-changed); width: 3.4em; flex-shrink: 0; }
+.ock-tree .log-subj { color: var(--_ock-text); }
+.ock-tree .log-from { color: var(--_ock-text-3); text-decoration: line-through; overflow: hidden; text-overflow: ellipsis; }
+.ock-tree .log-to { color: var(--_ock-accent); overflow: hidden; text-overflow: ellipsis; }
+.ock-tree .log-rev { margin-left: auto; background: none; border: 0; color: var(--_ock-text-3); cursor: pointer; }
+.ock-tree .log-rev:hover { color: var(--_ock-member); }
+.ock-tree .log-empty { color: var(--_ock-text-3); }
 
 /* ── inspector ── */
 .ock-tree .brain-insp {
   width: 300px;
   flex-shrink: 0;
-  border-left: 1px solid var(--border);
+  border-left: 1px solid var(--_ock-border);
   padding: 16px 16px 20px;
   overflow: auto;
-  background: var(--surface);
+  background: var(--_ock-surface);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -267,71 +308,71 @@
 .ock-tree .insp-input {
   background: transparent;
   border: 0;
-  border-bottom: 1px dashed var(--border-strong);
+  border-bottom: 1px dashed var(--_ock-border-strong);
   padding: 2px 0 4px;
   outline: none;
   width: 100%;
 }
-.ock-tree .insp-input:focus { border-bottom-color: var(--accent); }
-.ock-tree .insp-sub { color: var(--text-2); display: flex; gap: 8px; align-items: center; }
-.ock-tree .insp-badge { border: 1px solid var(--text); padding: 0 5px; font-size: 9.5px; color: var(--text); }
-.ock-tree .insp-path { font-size: 10.5px; color: var(--text-3); line-height: 1.7; }
-.ock-tree .insp-path button { background: none; border: 0; padding: 0; cursor: pointer; color: var(--text-2); }
-.ock-tree .insp-path button:hover { color: var(--accent); }
-.ock-tree .insp-stats { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--border); }
-.ock-tree .insp-stats div { padding: 8px 10px; font-size: 10px; color: var(--text-3); display: flex; flex-direction: column; gap: 2px; }
-.ock-tree .insp-stats div + div { border-left: 1px solid var(--border); }
-.ock-tree .insp-stats b { font-size: 18px; color: var(--text); font-weight: 500; }
-.ock-tree .insp-field { display: flex; flex-direction: column; gap: 4px; font-size: 10px; color: var(--text-3); letter-spacing: 0.08em; }
+.ock-tree .insp-input:focus { border-bottom-color: var(--_ock-accent); }
+.ock-tree .insp-sub { color: var(--_ock-text-2); display: flex; gap: 8px; align-items: center; }
+.ock-tree .insp-badge { border: 1px solid var(--_ock-text); padding: 0 5px; font-size: 9.5px; color: var(--_ock-text); }
+.ock-tree .insp-path { font-size: 10.5px; color: var(--_ock-text-3); line-height: 1.7; }
+.ock-tree .insp-path button { background: none; border: 0; padding: 0; cursor: pointer; color: var(--_ock-text-2); }
+.ock-tree .insp-path button:hover { color: var(--_ock-accent); }
+.ock-tree .insp-stats { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--_ock-border); }
+.ock-tree .insp-stats div { padding: 8px 10px; font-size: 10px; color: var(--_ock-text-3); display: flex; flex-direction: column; gap: 2px; }
+.ock-tree .insp-stats div + div { border-left: 1px solid var(--_ock-border); }
+.ock-tree .insp-stats b { font-size: 18px; color: var(--_ock-text); font-weight: 500; }
+.ock-tree .insp-field { display: flex; flex-direction: column; gap: 4px; font-size: 10px; color: var(--_ock-text-3); letter-spacing: 0.08em; }
 .ock-tree .insp-field select {
-  background: var(--bg);
-  border: 1px solid var(--border-strong);
+  background: var(--_ock-bg);
+  border: 1px solid var(--_ock-border-strong);
   padding: 6px 8px;
   font-size: 12px;
   letter-spacing: 0;
 }
-.ock-tree .insp-warn { color: var(--warn); font-size: 11px; }
-.ock-tree .insp-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--border); }
+.ock-tree .insp-warn { color: var(--_ock-member); font-size: 11px; }
+.ock-tree .insp-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--_ock-border); }
 .ock-tree .insp-list li {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 6px 2px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--_ock-border);
   cursor: pointer;
 }
-.ock-tree .insp-list li:hover { color: var(--accent); }
-.ock-tree .insp-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--warn); flex-shrink: 0; }
-.ock-tree .insp-dot.is-head { background: var(--bg); box-shadow: 0 0 0 1.5px var(--text); }
-.ock-tree .insp-meta { margin-left: auto; font-size: 10px; color: var(--text-3); }
-.ock-tree .insp-empty { color: var(--text-3); cursor: default !important; }
+.ock-tree .insp-list li:hover { color: var(--_ock-accent); }
+.ock-tree .insp-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--_ock-member); flex-shrink: 0; }
+.ock-tree .insp-dot.is-head { background: var(--_ock-bg); box-shadow: 0 0 0 1.5px var(--_ock-text); }
+.ock-tree .insp-meta { margin-left: auto; font-size: 10px; color: var(--_ock-text-3); }
+.ock-tree .insp-empty { color: var(--_ock-text-3); cursor: default !important; }
 .ock-tree .insp-chips { display: flex; flex-wrap: wrap; gap: 5px; }
 .ock-tree .insp-actions { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; }
 .ock-tree .insp-actions button { padding: 7px 10px; text-align: left; font-size: 11.5px; }
-.ock-tree .insp-actions button.danger:hover { border-color: var(--err); color: var(--err); }
+.ock-tree .insp-actions button.danger:hover { border-color: var(--_ock-danger); color: var(--_ock-danger); }
 .ock-tree .insp-input { font-size: 18px; font-weight: 700; }
 
 /* ── tree 版 ── */
 .ock-tree .kg-level { text-anchor: end; }
 .ock-tree .kg-label-org { dominant-baseline: auto; }
-.ock-tree .kg-label-member { text-anchor: start; fill: var(--text-2); }
+.ock-tree .kg-label-member { text-anchor: start; fill: var(--_ock-text-2); }
 .ock-tree .kg-edge-member { fill: none; }
-.ock-tree .kg-edge-member path { fill: none; stroke: var(--warn); stroke-opacity: 0.22; stroke-width: 0.8; }
+.ock-tree .kg-edge-member path { fill: none; stroke: var(--_ock-member); stroke-opacity: 0.22; stroke-width: 0.8; }
 .ock-tree .kg-edge-member.is-hot path { stroke-opacity: 0.6; }
 .ock-tree .kg-edge-org { stroke-linejoin: round; }
-.ock-tree .kg-node.is-drag { filter: drop-shadow(0 0 6px rgba(61, 240, 140, 0.45)); }
+.ock-tree .kg-node.is-drag { filter: drop-shadow(0 0 6px var(--_ock-glow)); }
 .ock-tree .brain-fit {
   position: absolute;
   top: 12px;
   right: 14px;
-  background: var(--surface);
-  border: 1px solid var(--border-strong);
+  background: var(--_ock-surface);
+  border: 1px solid var(--_ock-border-strong);
   padding: 4px 10px;
   font-size: 10.5px;
-  color: var(--text-2);
+  color: var(--_ock-text-2);
   cursor: pointer;
 }
-.ock-tree .brain-fit:hover { border-color: var(--accent); color: var(--accent); }
+.ock-tree .brain-fit:hover { border-color: var(--_ock-accent); color: var(--_ock-accent); }
 /* 詳細パネルはキャンバスに重ねる（開閉でキャンバス幅＝カメラが変わらないように） */
 .ock-tree .brain-body { position: relative; }
-.ock-tree .brain-insp { position: absolute; top: 0; right: 0; bottom: 0; z-index: 3; box-shadow: -18px 0 40px rgba(0, 0, 0, 0.45); }
+.ock-tree .brain-insp { position: absolute; top: 0; right: 0; bottom: 0; z-index: 3; box-shadow: -18px 0 40px var(--_ock-shadow); }

@@ -16,6 +16,7 @@ import {
 } from '../../core/model';
 import { describe } from '../../core/describe';
 import type { OrgEditor } from '../useOrgEditor';
+import { tokenStyle, type OrgMapToken, type OrgTheme, type Tokens } from '../theme';
 import { useSize } from '../useSize';
 
 /**
@@ -45,12 +46,16 @@ export type OrgMapProps = {
   subtitle?: string;
   /** 帳面の見出し横の注記（例: 「第一稿　二〇二六年九月」） */
   planLabel?: string;
+  /** 配色のプリセット（既定 'light'） */
+  theme?: OrgTheme;
+  /** 個別の色・フォントの上書き（CSS 変数 --ock-* と同じ。祖先要素の CSS で指定してもよい） */
+  tokens?: Tokens<OrgMapToken>;
   className?: string;
   style?: CSSProperties;
 };
 
 /** 親要素いっぱいに広がる（親に高さが必要）。スタイルは `org-chart-kit/styles.css`。 */
-export function OrgMap({ store, title = '組織の地図', subtitle = 'ORG MAP', planLabel = '', className, style }: OrgMapProps) {
+export function OrgMap({ store, title = '組織の地図', subtitle = 'ORG MAP', planLabel = '', theme = 'light', tokens, className, style }: OrgMapProps) {
   const uid = useId().replace(/:/g, '');
   const { state, base, changes, dispatch } = store;
   const [wrapRef, size] = useSize<HTMLDivElement>();
@@ -229,7 +234,7 @@ export function OrgMap({ store, title = '組織の地図', subtitle = 'ORG MAP',
   const draggedNode = drag?.moved ? (drag.kind === 'org' ? layout.orgs.get(drag.id) : layout.members.get(drag.id)) : undefined;
 
   return (
-    <div className={`ock-map${className ? ` ${className}` : ''}`} style={style}>
+    <div className={`ock-map${className ? ` ${className}` : ''}`} data-ock-theme={theme} style={tokenStyle(tokens, style)}>
       {title !== null && (
         <div className="t-spine">
           <div className="t-spine-title">{title}</div>
@@ -264,7 +269,7 @@ export function OrgMap({ store, title = '組織の地図', subtitle = 'ORG MAP',
             setSel(null);
           }}
           className={drag?.moved ? 'is-dragging' : ''}
-          style={{ ['--px' as string]: 1 / scale } as CSSProperties}
+          style={{ ['--_ock-px' as string]: 1 / scale } as CSSProperties}
         >
           <defs>
             <pattern id={`${uid}-hatch`} width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(35)">
