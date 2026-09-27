@@ -1,0 +1,315 @@
+/* Variant B — 紙・墨・朱・藍。地形図と帳面のメタファー */
+.ock-map {
+  --paper: #efe8da;
+  --paper-2: #e6ddca;
+  --paper-3: #f6f1e6;
+  --ink: #1f1c17;
+  --ink-2: #5d564a;
+  --ink-3: #9a917f;
+  --shu: #cf3f26;
+  --shu-soft: rgba(207, 63, 38, 0.1);
+  --ai: #28406a;
+  --ai-soft: rgba(40, 64, 106, 0.06);
+  --moss: #6f7b4a;
+
+  position: absolute;
+  inset: 0;
+  display: flex;
+  background-color: var(--paper);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .12 0 0 0 0 .1 0 0 0 0 .08 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  color: var(--ink);
+  font-family: 'Zen Kaku Gothic New', sans-serif;
+  font-size: 13px;
+}
+.ock-map button,
+.ock-map select,
+.ock-map input {
+  font: inherit;
+  color: inherit;
+}
+
+/* ── 背表紙 ── */
+.ock-map .t-spine {
+  width: 64px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--ink);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 26px 0 22px;
+}
+.ock-map .t-spine-title {
+  writing-mode: vertical-rl;
+  font-family: 'Shippori Mincho B1', serif;
+  font-weight: 800;
+  font-size: 30px;
+  letter-spacing: 0.32em;
+}
+.ock-map .t-spine-sub {
+  writing-mode: vertical-rl;
+  font-size: 10px;
+  letter-spacing: 0.3em;
+  color: var(--ink-3);
+}
+
+/* ── 地図 ── */
+.ock-map .t-map {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+.ock-map .t-map svg { display: block; touch-action: none; user-select: none; }
+.ock-map .t-map svg.is-dragging { cursor: grabbing; }
+
+.ock-map .t-crumbs {
+  position: absolute;
+  top: 16px;
+  left: 20px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-family: 'Shippori Mincho B1', serif;
+  font-size: 13px;
+}
+.ock-map .t-crumbs button {
+  background: none;
+  border: 0;
+  padding: 2px 4px;
+  cursor: pointer;
+  color: var(--ink-2);
+  border-bottom: 1px solid transparent;
+}
+.ock-map .t-crumbs button:hover { color: var(--shu); }
+.ock-map .t-crumbs button.is-cur { color: var(--ink); font-weight: 700; border-bottom-color: var(--ink); }
+.ock-map .t-crumbs em { font-style: normal; color: var(--ink-3); }
+
+/* 区画 */
+.ock-map .t-org { cursor: grab; transition: transform 0.75s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.3s; }
+.ock-map .t-org circle { transition: r 0.75s cubic-bezier(0.32, 0.72, 0, 1), fill 0.25s, stroke 0.25s; }
+.ock-map .t-org-fill { stroke: var(--ink); stroke-width: calc(1.1px * var(--px)); }
+.ock-map .t-org.d0 .t-org-fill { fill: var(--paper-3); stroke-width: calc(1.6px * var(--px)); }
+.ock-map .t-org.d1 .t-org-fill { fill: #e9e1cf; }
+.ock-map .t-org.d2 .t-org-fill { fill: #e1d8c2; }
+.ock-map .t-org.d3 .t-org-fill { fill: #d8ceb6; }
+.ock-map .t-org.d4 .t-org-fill { fill: #d0c5ab; }
+.ock-map .t-org-contour { fill: none; stroke: var(--ai); stroke-opacity: 0.35; stroke-width: calc(0.8px * var(--px)); stroke-dasharray: calc(1px * var(--px)) calc(3px * var(--px)); }
+.ock-map .t-org-hatch { pointer-events: none; }
+.ock-map .t-hatch-line { stroke: var(--shu); stroke-opacity: 0.25; stroke-width: 1; }
+.ock-map .t-arc { fill: none; stroke: none; }
+.ock-map .t-org-label {
+  font-family: 'Shippori Mincho B1', serif;
+  font-weight: 700;
+  fill: var(--ink);
+  text-anchor: middle;
+  letter-spacing: 0.08em;
+  pointer-events: none;
+  paint-order: stroke;
+  stroke: var(--paper-3);
+  stroke-width: 0.18em;
+  stroke-opacity: 0.7;
+}
+.ock-map .t-org-count { fill: var(--ink-3); text-anchor: middle; pointer-events: none; letter-spacing: 0.1em; }
+.ock-map .t-vacant { fill: var(--paper-3); stroke: var(--shu); stroke-width: calc(1.2px * var(--px)); stroke-dasharray: calc(2px * var(--px)) calc(2px * var(--px)); pointer-events: none; }
+.ock-map .t-org:hover > .t-org-fill { stroke: var(--ai); stroke-width: calc(1.8px * var(--px)); }
+.ock-map .t-org.is-sel > .t-org-fill { stroke: var(--ai); stroke-width: calc(2.6px * var(--px)); }
+.ock-map .t-org.is-touched > .t-org-contour { stroke: var(--shu); stroke-opacity: 0.8; }
+.ock-map .t-org.is-spot > .t-org-fill { stroke: var(--shu); stroke-width: calc(2.4px * var(--px)); }
+.ock-map .t-org.is-drop.ok > .t-org-fill { fill: #f3d7c9; stroke: var(--shu); stroke-width: calc(2.6px * var(--px)); }
+.ock-map .t-org.is-drop.ok > .t-org-label { fill: var(--shu); }
+.ock-map .t-org.is-drop.same > .t-org-fill { stroke: var(--ink-3); stroke-dasharray: calc(4px * var(--px)); }
+.ock-map .t-org.is-ghost { opacity: 0.28; }
+
+.ock-map .t-tag rect { fill: var(--shu); }
+.ock-map .t-tag text { fill: var(--paper-3); text-anchor: middle; font-weight: 700; letter-spacing: 0.1em; }
+.ock-map .t-tag { pointer-events: none; }
+
+/* 異動の糸 */
+.ock-map .t-thread path {
+  fill: none;
+  stroke: var(--shu);
+  stroke-width: calc(1.3px * var(--px));
+  stroke-dasharray: calc(3px * var(--px)) calc(3px * var(--px));
+  stroke-opacity: 0.75;
+  transition: d 0.75s cubic-bezier(0.32, 0.72, 0, 1);
+  pointer-events: none;
+}
+.ock-map .t-thread-origin { fill: var(--paper-3); stroke: var(--shu); stroke-width: calc(1.2px * var(--px)); pointer-events: none; }
+.ock-map .t-thread.is-spot path { stroke-width: calc(2.6px * var(--px)); stroke-opacity: 1; }
+
+/* 石 */
+.ock-map .t-stone { cursor: grab; transition: transform 0.75s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.2s; }
+.ock-map .t-stone-body { fill: var(--paper-3); stroke: var(--ink); stroke-width: calc(1px * var(--px)); transition: fill 0.2s; }
+.ock-map .t-stone-char {
+  font-family: 'Shippori Mincho B1', serif;
+  font-weight: 700;
+  fill: var(--ink);
+  text-anchor: middle;
+  pointer-events: none;
+}
+.ock-map .t-stone-name { fill: var(--ink-2); text-anchor: middle; pointer-events: none; }
+.ock-map .t-stone.is-head .t-stone-body { fill: var(--shu); stroke: #8d2716; }
+.ock-map .t-stone.is-head .t-stone-char { fill: var(--paper-3); }
+.ock-map .t-stone:hover .t-stone-body { fill: var(--ink); }
+.ock-map .t-stone:hover .t-stone-char { fill: var(--paper-3); }
+.ock-map .t-stone.is-moved .t-stone-body { stroke: var(--shu); stroke-width: calc(2px * var(--px)); }
+.ock-map .t-stone.is-sel .t-stone-body { stroke: var(--ai); stroke-width: calc(3px * var(--px)); }
+.ock-map .t-stone.is-spot .t-stone-body { fill: var(--shu); }
+.ock-map .t-stone.is-spot .t-stone-char { fill: var(--paper-3); }
+.ock-map .t-stone.is-lifted { opacity: 0.2; }
+
+/* 持ち上げ */
+.ock-map .t-lift { pointer-events: none; }
+.ock-map .t-lift-shadow { fill: var(--ink); opacity: 0.14; transform: translate(3px, 5px); }
+.ock-map .t-lift-body { fill: var(--ink); }
+.ock-map .t-lift text { fill: var(--paper-3); text-anchor: middle; font-family: 'Shippori Mincho B1', serif; font-weight: 700; }
+.ock-map .t-lift-ring { fill: var(--shu-soft); stroke: var(--shu); stroke-width: calc(1.6px * var(--px)); stroke-dasharray: calc(5px * var(--px)) calc(3px * var(--px)); }
+.ock-map .t-lift-ring + text { fill: var(--shu); }
+
+.ock-map .ock-t-drop-caption {
+  position: absolute;
+  bottom: 54px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 8px 18px;
+  font-family: 'Shippori Mincho B1', serif;
+  font-size: 15px;
+  background: var(--paper-3);
+  border: 1px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+  pointer-events: none;
+}
+.ock-map .ock-t-drop-caption.ok { border-color: var(--shu); color: var(--shu); box-shadow: 3px 3px 0 var(--shu); }
+.ock-map .ock-t-drop-caption.same { color: var(--ink-3); }
+
+.ock-map .t-tip {
+  position: fixed;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 7px 11px;
+  background: var(--ink);
+  color: var(--paper-3);
+  font-size: 11.5px;
+  pointer-events: none;
+}
+.ock-map .t-tip b { font-family: 'Shippori Mincho B1', serif; font-size: 14px; }
+.ock-map .t-tip-org { color: #e7a795; }
+
+.ock-map .t-legend {
+  position: absolute;
+  left: 20px;
+  bottom: 16px;
+  display: flex;
+  gap: 14px;
+  font-size: 11px;
+  color: var(--ink-2);
+  pointer-events: none;
+}
+.ock-map .t-legend span { display: flex; align-items: center; gap: 5px; }
+.ock-map .t-legend i { display: inline-block; width: 11px; height: 11px; }
+.ock-map .lg-terr { border-radius: 50%; border: 1px solid var(--ink); background: #e1d8c2; }
+.ock-map .lg-stone { border-radius: 50%; border: 1px solid var(--ink); background: var(--paper-3); width: 9px !important; height: 9px !important; }
+.ock-map .lg-seal { background: var(--shu); border-radius: 2px; }
+.ock-map .lg-vac { border: 1px dashed var(--shu); }
+.ock-map .lg-thread { border-top: 1.5px dashed var(--shu); height: 0 !important; width: 16px !important; }
+.ock-map .t-howto {
+  position: absolute;
+  right: 18px;
+  bottom: 16px;
+  font-size: 11px;
+  color: var(--ink-3);
+  pointer-events: none;
+}
+
+/* ── 帳面 ── */
+.ock-map .t-ledger {
+  width: 360px;
+  flex-shrink: 0;
+  border-left: 1px solid var(--ink);
+  background: var(--paper-3);
+  display: flex;
+  flex-direction: column;
+  overflow: auto;
+}
+.ock-map .t-card {
+  padding: 20px 22px 18px;
+  border-bottom: 3px double var(--ink);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: ock-t-drop 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+}
+@keyframes ock-t-drop { from { transform: translateY(-8px); opacity: 0; } }
+.ock-map .t-card-kicker { font-size: 10.5px; letter-spacing: 0.3em; color: var(--shu); }
+.ock-map .t-card-title { font-family: 'Shippori Mincho B1', serif; font-weight: 800; font-size: 24px; line-height: 1.2; }
+.ock-map .t-card-input { background: transparent; border: 0; border-bottom: 1px solid var(--ink-3); padding: 0 0 4px; outline: none; width: 100%; }
+.ock-map .t-card-input:focus { border-bottom-color: var(--shu); }
+.ock-map .t-card-sub { color: var(--ink-2); font-size: 12px; }
+.ock-map .t-card-figs { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink); }
+.ock-map .t-card-figs div { padding: 8px 0 6px; font-size: 10.5px; color: var(--ink-2); display: flex; flex-direction: column; align-items: center; }
+.ock-map .t-card-figs div + div { border-left: 1px solid var(--paper-2); }
+.ock-map .t-card-figs b { font-family: 'Shippori Mincho B1', serif; font-size: 24px; color: var(--ink); line-height: 1.1; }
+.ock-map .t-field { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--ink-2); }
+.ock-map .t-field select { background: var(--paper); border: 1px solid var(--ink); padding: 6px 8px; font-size: 13px; }
+.ock-map .t-card-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.ock-map .t-card-actions button,
+.ock-map .t-plan footer button {
+  background: none;
+  border: 1px solid var(--ink);
+  padding: 6px 11px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.15s, color 0.15s;
+}
+.ock-map .t-card-actions button:hover:not(:disabled),
+.ock-map .t-plan footer button:hover:not(:disabled) { background: var(--ink); color: var(--paper-3); }
+.ock-map .t-card-actions button.danger { border-color: var(--shu); color: var(--shu); }
+.ock-map .t-card-actions button.danger:hover { background: var(--shu); color: var(--paper-3); }
+.ock-map button:disabled { opacity: 0.35; cursor: default; }
+
+.ock-map .t-plan { flex: 1; display: flex; flex-direction: column; padding: 20px 22px; min-height: 0; }
+.ock-map .t-plan header { display: flex; align-items: baseline; justify-content: space-between; border-bottom: 1px solid var(--ink); padding-bottom: 8px; }
+.ock-map .t-plan h2 { margin: 0; font-family: 'Shippori Mincho B1', serif; font-weight: 800; font-size: 26px; letter-spacing: 0.2em; }
+.ock-map .t-plan-meta { font-size: 10.5px; color: var(--ink-3); letter-spacing: 0.1em; }
+.ock-map .t-plan-sum { display: flex; gap: 12px; padding: 8px 0; font-size: 11px; color: var(--ink-2); border-bottom: 1px solid var(--paper-2); }
+.ock-map .t-plan-sum b { font-family: 'Shippori Mincho B1', serif; font-size: 17px; color: var(--shu); margin-right: 1px; }
+.ock-map .t-plan ol { list-style: none; margin: 0; padding: 0; flex: 1; overflow: auto; }
+.ock-map .t-plan li {
+  display: grid;
+  grid-template-columns: 2em 3.2em 1fr auto;
+  gap: 6px;
+  align-items: start;
+  padding: 9px 2px;
+  border-bottom: 1px dotted var(--ink-3);
+  animation: ock-t-ink 0.4s ease-out;
+}
+@keyframes ock-t-ink { from { background: var(--shu-soft); } }
+.ock-map .t-plan li.is-spot { background: var(--shu-soft); }
+.ock-map .t-no { font-family: 'Shippori Mincho B1', serif; color: var(--ink-3); }
+.ock-map .t-verb {
+  font-size: 10.5px;
+  border: 1px solid var(--shu);
+  color: var(--shu);
+  text-align: center;
+  padding: 1px 0;
+  letter-spacing: 0.08em;
+}
+.ock-map .t-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ock-map .t-body b { font-family: 'Shippori Mincho B1', serif; font-size: 14px; }
+.ock-map .t-route { font-size: 11.5px; color: var(--ink-2); }
+.ock-map .t-route s { color: var(--ink-3); }
+.ock-map .t-route em { font-style: normal; color: var(--shu); }
+.ock-map .t-undo-one { background: none; border: 0; color: var(--ink-3); cursor: pointer; font-size: 11px; padding: 2px 0; }
+.ock-map .t-undo-one:hover { color: var(--shu); text-decoration: underline; }
+.ock-map .t-empty { display: block !important; color: var(--ink-3); font-size: 12px; line-height: 1.8; border: 0 !important; padding-top: 16px !important; }
+.ock-map .t-plan footer { display: flex; gap: 6px; padding-top: 12px; }
+/* 最上位の名前は背表紙とパンくずが担う */
+.ock-map .t-org-label.is-root { display: none; }
+.ock-map .t-card-input { font-family: 'Shippori Mincho B1', serif; font-weight: 800; font-size: 24px; }
+/* 石で埋まった区画でも掴めるよう、弧上の組織名もつまみにする */
+.ock-map .t-org-label { pointer-events: visiblePainted; cursor: grab; }
+.ock-map .t-org-label:hover { fill: var(--ai); }

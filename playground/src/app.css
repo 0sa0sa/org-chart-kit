@@ -1,0 +1,59 @@
+*, *::before, *::after { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body { overflow: hidden; background: #111; }
+
+.app { position: relative; display: flex; height: 100%; }
+.pane { position: relative; flex: 1; min-width: 0; overflow: hidden; }
+.mode-split .pane + .pane { border-left: 4px solid #111; }
+
+/* どちらの世界観にも属さない中立のスイッチ */
+.switch {
+  position: fixed;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  background: rgba(24, 24, 24, 0.86);
+  backdrop-filter: blur(8px);
+  border-radius: 999px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+  font-family: 'Zen Kaku Gothic New', sans-serif;
+}
+.switch button {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #9a9a9a;
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+}
+.switch button b { font-family: 'JetBrains Mono', monospace; font-size: 12px; }
+.switch button:hover { color: #eee; }
+.switch button[aria-selected='true'] { background: #f2f2f2; color: #111; }
+.switch-count {
+  padding: 0 12px 0 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: #8a8a8a;
+}
+
+/* 並列表示では各ビューの余白を詰める（ライブラリのクラスを上書きするので詳細度を上げる） */
+.mode-split .ock-tree .brain-dir,
+.mode-split .ock-tree .brain-legend,
+.mode-split .ock-tree .brain-hint,
+.mode-split .ock-map .t-legend,
+.mode-split .ock-map .t-howto { display: none; }
+.mode-split .ock-tree .brain-insp { width: 250px; }
+.mode-split .ock-map .t-ledger { width: 290px; }
+.mode-split .ock-map .t-spine { width: 44px; padding-top: 70px; }
+.mode-split .ock-map .t-spine-title { font-size: 22px; }
+.mode-split .ock-map .t-crumbs { top: 62px; }
