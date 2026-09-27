@@ -87,6 +87,8 @@ await shot('b-overview');
   await drag(kato, { x: cs.x, y: cs.y + cs.w * 0.25 }, {
     hold: async () => {
       check('map: 落とす区画を表示', (await page.textContent('.t-drop-caption')).includes('カスタマーサクセス部'));
+      const cap = await page.evaluate(() => getComputedStyle(document.querySelector('.t-drop-caption')).position);
+      check('map: 落とし先の表示にスタイルが当たっている', cap === 'absolute', cap);
       await shot('b-dragging');
     },
   });
@@ -146,6 +148,20 @@ await shot('split');
   check('tokens: アクセント色を上書き', t.accent === '#ff6600' && m.seal === '#ff6600', `${t.accent} / ${m.seal}`);
   await shot('themes-light-accent');
   await page.click('.switch-accent button');
+
+  // shadcn/ui のホストの変数を読む（light → ホストの .dark に追従）
+  await page.selectOption('.switch-theme', 'shadcn');
+  await page.waitForTimeout(400);
+  const shTree = await probe('.ock-tree');
+  const shMap = await probe('.ock-map');
+  check('shadcn: ホストの --background（白）を使う', shTree.bg === 'rgb(255, 255, 255)' && shMap.bg === 'rgb(255, 255, 255)', `${shTree.bg} / ${shMap.bg}`);
+  check('shadcn: accent / seal はホストの --primary', shTree.accent.includes('hsl') || shTree.accent.includes('var('), shTree.accent);
+  await shot('themes-shadcn-light');
+  await page.selectOption('.switch-theme', 'shadcn-dark');
+  await page.waitForTimeout(400);
+  const shDark = await probe('.ock-tree');
+  check('shadcn: ホストの .dark に追従', shDark.bg === 'rgb(10, 10, 10)', shDark.bg);
+  await shot('themes-shadcn-dark');
   await page.selectOption('.switch-theme', 'default');
 }
 

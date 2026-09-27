@@ -19,6 +19,8 @@
   --_ock-grain: var(--ock-grain, url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .12 0 0 0 0 .1 0 0 0 0 .08 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"));
   --_ock-font-body: var(--ock-font-body, 'Zen Kaku Gothic New', sans-serif);
   --_ock-font-display: var(--ock-font-display, 'Shippori Mincho B1', serif);
+  --_ock-line: var(--ock-line, var(--_ock-text));
+  --_ock-radius: var(--ock-radius, 0);
   --_ock-seal-soft: var(--ock-seal-soft, color-mix(in srgb, var(--_ock-seal) 10%, transparent));
   --_ock-seal-edge: var(--ock-seal-edge, color-mix(in srgb, var(--_ock-seal) 70%, black));
   --_ock-select-soft: var(--ock-select-soft, color-mix(in srgb, var(--_ock-select) 6%, transparent));
@@ -61,6 +63,52 @@
 }
 }
 
+/* shadcn/ui のテーマ変数（--background, --primary, --radius …）をそのまま読むプリセット。
+   ホスト側の light/dark（.dark クラス）の切替にも自動で追従する。
+   'shadcn' は Tailwind v3 系（HSL の三つ組）、'shadcn-v4' は色そのもの（oklch など）を持つ変数向け。 */
+.ock-map[data-ock-theme='shadcn'] {
+  --_ock-bg: var(--ock-bg, hsl(var(--background)));
+  --_ock-surface: var(--ock-surface, hsl(var(--card)));
+  --_ock-surface-2: var(--ock-surface-2, hsl(var(--muted)));
+  --_ock-text: var(--ock-text, hsl(var(--foreground)));
+  --_ock-text-2: var(--ock-text-2, hsl(var(--muted-foreground)));
+  --_ock-text-3: var(--ock-text-3, color-mix(in srgb, hsl(var(--muted-foreground)) 65%, hsl(var(--background))));
+  --_ock-line: var(--ock-line, hsl(var(--border)));
+  --_ock-seal: var(--ock-seal, hsl(var(--primary)));
+  --_ock-on-seal: var(--ock-on-seal, hsl(var(--primary-foreground)));
+  --_ock-select: var(--ock-select, hsl(var(--sidebar-ring, 217.2 91.2% 59.8%)));
+  --_ock-tip-accent: var(--ock-tip-accent, hsl(var(--muted-foreground)));
+  --_ock-depth-1: var(--ock-depth-1, color-mix(in srgb, hsl(var(--muted)) 35%, hsl(var(--background))));
+  --_ock-depth-2: var(--ock-depth-2, color-mix(in srgb, hsl(var(--muted)) 65%, hsl(var(--background))));
+  --_ock-depth-3: var(--ock-depth-3, hsl(var(--muted)));
+  --_ock-depth-4: var(--ock-depth-4, color-mix(in srgb, hsl(var(--muted)), hsl(var(--border)) 60%));
+  --_ock-grain: var(--ock-grain, none);
+  --_ock-font-body: var(--ock-font-body, inherit);
+  --_ock-font-display: var(--ock-font-display, inherit);
+  --_ock-radius: var(--ock-radius, var(--radius, 0.375rem));
+}
+.ock-map[data-ock-theme='shadcn-v4'] {
+  --_ock-bg: var(--ock-bg, var(--background));
+  --_ock-surface: var(--ock-surface, var(--card));
+  --_ock-surface-2: var(--ock-surface-2, var(--muted));
+  --_ock-text: var(--ock-text, var(--foreground));
+  --_ock-text-2: var(--ock-text-2, var(--muted-foreground));
+  --_ock-text-3: var(--ock-text-3, color-mix(in srgb, var(--muted-foreground) 65%, var(--background)));
+  --_ock-line: var(--ock-line, var(--border));
+  --_ock-seal: var(--ock-seal, var(--primary));
+  --_ock-on-seal: var(--ock-on-seal, var(--primary-foreground));
+  --_ock-select: var(--ock-select, var(--sidebar-ring, oklch(0.623 0.214 259.815)));
+  --_ock-tip-accent: var(--ock-tip-accent, var(--muted-foreground));
+  --_ock-depth-1: var(--ock-depth-1, color-mix(in srgb, var(--muted) 35%, var(--background)));
+  --_ock-depth-2: var(--ock-depth-2, color-mix(in srgb, var(--muted) 65%, var(--background)));
+  --_ock-depth-3: var(--ock-depth-3, var(--muted));
+  --_ock-depth-4: var(--ock-depth-4, color-mix(in srgb, var(--muted), var(--border) 60%));
+  --_ock-grain: var(--ock-grain, none);
+  --_ock-font-body: var(--ock-font-body, inherit);
+  --_ock-font-display: var(--ock-font-display, inherit);
+  --_ock-radius: var(--ock-radius, var(--radius, 0.375rem));
+}
+
 .ock-map {
   position: absolute;
   inset: 0;
@@ -82,7 +130,7 @@
 .ock-map .t-spine {
   width: 64px;
   flex-shrink: 0;
-  border-right: 1px solid var(--_ock-text);
+  border-right: 1px solid var(--_ock-line);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -218,7 +266,8 @@
 .ock-map .t-lift-ring { fill: var(--_ock-seal-soft); stroke: var(--_ock-seal); stroke-width: calc(1.6px * var(--_ock-px)); stroke-dasharray: calc(5px * var(--_ock-px)) calc(3px * var(--_ock-px)); }
 .ock-map .t-lift-ring + text { fill: var(--_ock-seal); }
 
-.ock-map .ock-t-drop-caption {
+.ock-map .t-drop-caption {
+  border-radius: var(--_ock-radius);
   position: absolute;
   bottom: 54px;
   left: 50%;
@@ -227,14 +276,15 @@
   font-family: var(--_ock-font-display);
   font-size: 15px;
   background: var(--_ock-surface);
-  border: 1px solid var(--_ock-text);
-  box-shadow: 3px 3px 0 var(--_ock-text);
+  border: 1px solid var(--_ock-line);
+  box-shadow: 3px 3px 0 var(--_ock-line);
   pointer-events: none;
 }
-.ock-map .ock-t-drop-caption.ok { border-color: var(--_ock-seal); color: var(--_ock-seal); box-shadow: 3px 3px 0 var(--_ock-seal); }
-.ock-map .ock-t-drop-caption.same { color: var(--_ock-text-3); }
+.ock-map .t-drop-caption.ok { border-color: var(--_ock-seal); color: var(--_ock-seal); box-shadow: 3px 3px 0 var(--_ock-seal); }
+.ock-map .t-drop-caption.same { color: var(--_ock-text-3); }
 
 .ock-map .t-tip {
+  border-radius: var(--_ock-radius);
   position: fixed;
   z-index: 10;
   display: flex;
@@ -279,7 +329,7 @@
 .ock-map .t-ledger {
   width: 360px;
   flex-shrink: 0;
-  border-left: 1px solid var(--_ock-text);
+  border-left: 1px solid var(--_ock-line);
   background: var(--_ock-surface);
   display: flex;
   flex-direction: column;
@@ -287,7 +337,7 @@
 }
 .ock-map .t-card {
   padding: 20px 22px 18px;
-  border-bottom: 3px double var(--_ock-text);
+  border-bottom: 3px double var(--_ock-line);
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -299,17 +349,18 @@
 .ock-map .t-card-input { background: transparent; border: 0; border-bottom: 1px solid var(--_ock-text-3); padding: 0 0 4px; outline: none; width: 100%; }
 .ock-map .t-card-input:focus { border-bottom-color: var(--_ock-seal); }
 .ock-map .t-card-sub { color: var(--_ock-text-2); font-size: 12px; }
-.ock-map .t-card-figs { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--_ock-text); border-bottom: 1px solid var(--_ock-text); }
+.ock-map .t-card-figs { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--_ock-line); border-bottom: 1px solid var(--_ock-line); }
 .ock-map .t-card-figs div { padding: 8px 0 6px; font-size: 10.5px; color: var(--_ock-text-2); display: flex; flex-direction: column; align-items: center; }
 .ock-map .t-card-figs div + div { border-left: 1px solid var(--_ock-surface-2); }
 .ock-map .t-card-figs b { font-family: var(--_ock-font-display); font-size: 24px; color: var(--_ock-text); line-height: 1.1; }
 .ock-map .t-field { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--_ock-text-2); }
-.ock-map .t-field select { background: var(--_ock-bg); border: 1px solid var(--_ock-text); padding: 6px 8px; font-size: 13px; }
+.ock-map .t-field select { border-radius: var(--_ock-radius); background: var(--_ock-bg); border: 1px solid var(--_ock-line); padding: 6px 8px; font-size: 13px; }
 .ock-map .t-card-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .ock-map .t-card-actions button,
 .ock-map .t-plan footer button {
+  border-radius: var(--_ock-radius);
   background: none;
-  border: 1px solid var(--_ock-text);
+  border: 1px solid var(--_ock-line);
   padding: 6px 11px;
   cursor: pointer;
   font-size: 12px;
@@ -322,7 +373,7 @@
 .ock-map button:disabled { opacity: 0.35; cursor: default; }
 
 .ock-map .t-plan { flex: 1; display: flex; flex-direction: column; padding: 20px 22px; min-height: 0; }
-.ock-map .t-plan header { display: flex; align-items: baseline; justify-content: space-between; border-bottom: 1px solid var(--_ock-text); padding-bottom: 8px; }
+.ock-map .t-plan header { display: flex; align-items: baseline; justify-content: space-between; border-bottom: 1px solid var(--_ock-line); padding-bottom: 8px; }
 .ock-map .t-plan h2 { margin: 0; font-family: var(--_ock-font-display); font-weight: 800; font-size: 26px; letter-spacing: 0.2em; }
 .ock-map .t-plan-meta { font-size: 10.5px; color: var(--_ock-text-3); letter-spacing: 0.1em; }
 .ock-map .t-plan-sum { display: flex; gap: 12px; padding: 8px 0; font-size: 11px; color: var(--_ock-text-2); border-bottom: 1px solid var(--_ock-surface-2); }
@@ -341,6 +392,7 @@
 .ock-map .t-plan li.is-spot { background: var(--_ock-seal-soft); }
 .ock-map .t-no { font-family: var(--_ock-font-display); color: var(--_ock-text-3); }
 .ock-map .t-verb {
+  border-radius: var(--_ock-radius);
   font-size: 10.5px;
   border: 1px solid var(--_ock-seal);
   color: var(--_ock-seal);

@@ -1,10 +1,13 @@
 import type { CSSProperties } from 'react';
 
 /**
- * 見た目のプリセット。'auto' は OS の配色設定（prefers-color-scheme）に従う。
- * 既定は OrgTree が 'dark'、OrgMap が 'light'。
+ * 見た目のプリセット。
+ * - 'light' / 'dark' / 'auto'（OS の配色設定 prefers-color-scheme に従う）。既定は OrgTree が 'dark'、OrgMap が 'light'。
+ * - 'shadcn' / 'shadcn-v4' はホストアプリの shadcn/ui テーマ変数（--background, --primary, --radius …）を読み、
+ *   ホスト側の light/dark 切替にも追従する。'shadcn' は Tailwind v3 系の HSL 三つ組（`--primary: 0 0% 9%`）、
+ *   'shadcn-v4' は色そのもの（`--primary: oklch(...)`）を持つ変数向け。
  */
-export type OrgTheme = 'light' | 'dark' | 'auto';
+export type OrgTheme = 'light' | 'dark' | 'auto' | 'shadcn' | 'shadcn-v4';
 
 /** 両ビュー共通のトークン */
 const SHARED_TOKENS = [
@@ -14,7 +17,8 @@ const SHARED_TOKENS = [
   'text', // 本文・線の基本色
   'text-2', // 補助テキスト
   'text-3', // 淡いテキスト・目盛り
-  'font-body', // 本文フォント（font-family の値）
+  'font-body', // 本文フォント（font-family の値。'inherit' でホストに合わせる）
+  'radius', // ボタン・入力・パネルの角丸（既定 0）
 ] as const;
 
 /** OrgTree のトークン（CSS 変数 `--ock-<name>`） */
@@ -38,6 +42,7 @@ export type OrgTreeToken = (typeof ORG_TREE_TOKENS)[number];
 export const ORG_MAP_TOKENS = [
   ...SHARED_TOKENS,
   'font-display', // 見出し・組織名・石の文字
+  'line', // 罫線・枠（既定: text と同じ墨色）
   'seal', // 朱：責任者の印・異動の糸・落とし先
   'seal-soft', // 朱の淡い面（既定: seal から自動計算）
   'seal-edge', // 印の縁（既定: seal から自動計算）

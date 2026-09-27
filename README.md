@@ -65,7 +65,7 @@ type OrgState = { orgs: Record<string, Org>; members: Record<string, Member> };
 
 ### プリセット
 
-`theme` に `'light' | 'dark' | 'auto'` を指定できます。`'auto'` は OS の配色設定（prefers-color-scheme）に従います。既定は、OrgTree が `'dark'`、OrgMap が `'light'` です。
+`theme` に `'light' | 'dark' | 'auto' | 'shadcn' | 'shadcn-v4'` を指定できます。`'auto'` は OS の配色設定（prefers-color-scheme）に従います。既定は、OrgTree が `'dark'`、OrgMap が `'light'` です。
 
 ```tsx
 <OrgTree store={editor} theme="light" />
@@ -75,6 +75,32 @@ type OrgState = { orgs: Record<string, Org>; members: Record<string, Member> };
 | dark（ツリー既定 / 地図） | light（ツリー / 地図既定）＋ アクセント色を上書き |
 |---|---|
 | ![dark](docs/themes-dark.png) | ![light](docs/themes-light-accent.png) |
+
+### shadcn/ui のアプリに合わせる
+
+`theme="shadcn"` は、ホストアプリの shadcn/ui のテーマ変数をそのまま読みます。使う変数は `--background` `--foreground` `--card` `--muted` `--muted-foreground` `--primary` `--primary-foreground` `--border` `--destructive` `--chart-2` `--radius` `--sidebar-ring` です。
+
+- 配色・角丸・フォント（`inherit`）がホストに揃います。
+- ホスト側で light/dark を切り替えると（`.dark` クラス）、それにも自動で追従します。
+
+```tsx
+// Tailwind v3 系の shadcn（`--primary: 0 0% 9%` のような HSL の三つ組）
+<OrgTree store={editor} theme="shadcn" />
+// Tailwind v4 系の shadcn（`--primary: oklch(0.205 0 0)` のような色そのもの）
+<OrgMap store={editor} theme="shadcn-v4" />
+```
+
+割り当ては次のとおりです。
+- 選択・責任者の印は `--primary`（黒または白）です。
+- 変更ありの印と選択中の区画は `--sidebar-ring`（青）です。この変数がないホストでは、Tailwind の blue-500 相当になります。
+- メンバーの点は `--chart-2` です。
+- 地図の紙の質感は無地にしています。
+
+特定の色だけ変えたいときは、トークンで上書きしてください（例: `tokens={{ member: 'hsl(var(--chart-1))' }}`）。
+
+| shadcn（ホスト light） | shadcn（ホスト dark） |
+|---|---|
+| ![shadcn light](docs/themes-shadcn-light.png) | ![shadcn dark](docs/themes-shadcn-dark.png) |
 
 ### トークン（CSS 変数 `--ock-*`）
 
@@ -101,7 +127,8 @@ type OrgState = { orgs: Record<string, Org>; members: Record<string, Member> };
 | `bg` | 背景 |
 | `surface` / `surface-2` | パネル・カードの面 / 一段沈んだ面 |
 | `text` / `text-2` / `text-3` | 本文と線の基本色 / 補助テキスト / 淡いテキスト |
-| `font-body` | 本文フォント（`font-family` の値） |
+| `font-body` | 本文フォント（`font-family` の値。`inherit` でホストに合わせる） |
+| `radius` | ボタン・入力・パネルの角丸（既定 `0`） |
 
 **OrgTree**
 
@@ -121,6 +148,7 @@ type OrgState = { orgs: Record<string, Org>; members: Record<string, Member> };
 | トークン | 用途 |
 |---|---|
 | `font-display` | 見出し・組織名・石の文字 |
+| `line` | 罫線・枠（既定: `text` と同じ墨色） |
 | `seal` | 朱。責任者の印・異動の糸・落とし先 |
 | `seal-soft` / `seal-edge` | 朱の淡い面 / 印の縁（自動計算） |
 | `on-seal` | 朱の上に載る文字 |

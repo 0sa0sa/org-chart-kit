@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { OrgMap, OrgTree, useOrgEditor, type OrgTheme } from 'org-chart-kit/react';
 import { sampleOrg } from './fixtures';
+import './shadcn-host.css';
 
 type Mode = 'a' | 'b' | 'split';
 const MODES: { id: Mode; label: string; sub: string }[] = [
@@ -20,11 +21,14 @@ export function App() {
   });
   useEffect(() => void history.replaceState(null, '', `#${mode}`), [mode]);
   // 配色のプリセット（'default' は各ビューの既定: ツリー=dark / 地図=light）と、アクセント色の上書き
-  const [theme, setTheme] = useState<'default' | OrgTheme>('default');
+  const [theme, setTheme] = useState<'default' | OrgTheme | 'shadcn-dark'>('default');
+  // 'shadcn' / 'shadcn-dark' は、shadcn/ui のホストアプリの中に置いた状態を再現する（dark はホスト側の .dark クラス）
+  const shadcn = theme === 'shadcn' || theme === 'shadcn-dark';
+  const viewTheme = (fallback: OrgTheme): OrgTheme => (theme === 'default' ? fallback : shadcn ? 'shadcn' : (theme as OrgTheme));
   const [accent, setAccent] = useState('');
 
   return (
-    <div className={`app mode-${mode}`}>
+    <div className={`app mode-${mode}${shadcn ? ' host-shadcn' : ''}${theme === 'shadcn-dark' ? ' dark' : ''}`}>
       <div className="switch" role="tablist">
         {MODES.map((m) => (
           <button key={m.id} role="tab" aria-selected={mode === m.id} onClick={() => setMode(m.id)}>
@@ -38,6 +42,8 @@ export function App() {
           <option value="light">light</option>
           <option value="dark">dark</option>
           <option value="auto">auto</option>
+          <option value="shadcn">shadcn（ホスト light）</option>
+          <option value="shadcn-dark">shadcn（ホスト dark）</option>
         </select>
         <label className="switch-accent" title="アクセント色（ツリーの accent / 地図の seal）">
           <input type="color" value={accent || '#3df08c'} onChange={(e) => setAccent(e.target.value)} />
@@ -49,7 +55,7 @@ export function App() {
           <OrgTree
             store={editor}
             eyebrow="org-chart-kit · OrgTree"
-            theme={theme === 'default' ? 'dark' : theme}
+            theme={viewTheme('dark')}
             tokens={accent ? { accent } : undefined}
           />
         </div>
@@ -60,7 +66,7 @@ export function App() {
             store={editor}
             subtitle="ORG-CHART-KIT · ORGMAP"
             planLabel="第一稿　二〇二六年九月"
-            theme={theme === 'default' ? 'light' : theme}
+            theme={viewTheme('light')}
             tokens={accent ? { seal: accent } : undefined}
           />
         </div>

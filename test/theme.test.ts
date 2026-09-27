@@ -18,8 +18,8 @@ const used = (...srcs: string[]) =>
   new Set(srcs.flatMap((s) => [...s.matchAll(/var\(--_ock-([a-z0-9-]+)/g)].map((m) => m[1])).filter((t) => t !== 'px'));
 
 const views = [
-  { name: 'OrgTree', css: 'tree/tree.css', tsx: 'tree/OrgTree.tsx', root: '.ock-tree', tokens: ORG_TREE_TOKENS, other: 'light' },
-  { name: 'OrgMap', css: 'map/map.css', tsx: 'map/OrgMap.tsx', root: '.ock-map', tokens: ORG_MAP_TOKENS, other: 'dark' },
+  { name: 'OrgTree', css: 'tree/tree.css', tsx: 'tree/OrgTree.tsx', root: '.ock-tree', tokens: ORG_TREE_TOKENS, other: 'light', derived: ['accent-soft', 'accent-line', 'glow'] },
+  { name: 'OrgMap', css: 'map/map.css', tsx: 'map/OrgMap.tsx', root: '.ock-map', tokens: ORG_MAP_TOKENS, other: 'dark', derived: ['seal-soft', 'seal-edge', 'select-soft', 'drop'] },
 ] as const;
 
 for (const v of views) {
@@ -42,6 +42,25 @@ for (const v of views) {
 
     it('CSS と TSX が参照する内部変数はすべてトークンとして定義されている', () => {
       for (const t of used(css, read(v.tsx))) expect(v.tokens).toContain(t);
+    });
+
+    it('クラスセレクタはルート以外に ock- 接頭辞を持たない（keyframes 名の置換がクラス名を巻き込んでいない）', () => {
+      const selectors = css.replace(/@keyframes[^{]+\{(?:[^{}]*\{[^{}]*\})*[^{}]*\}/g, '').replace(/\{[^{}]*\}/g, '{}');
+      const stray = [...selectors.matchAll(/\.(ock-[a-z0-9-]+)/g)].map((m) => m[1]).filter((c) => c !== 'ock-tree' && c !== 'ock-map');
+      expect(stray).toEqual([]);
+    });
+
+    it('shadcn / shadcn-v4 は自動計算以外のトークンをすべてホストの変数から決める', () => {
+      const need = v.tokens.filter((t) => !(v.derived as readonly string[]).includes(t)).sort();
+      for (const theme of ['shadcn', 'shadcn-v4']) {
+        expect(declared(css, `${v.root}[data-ock-theme='${theme}']`).sort()).toEqual(need);
+      }
+      const block = (theme: string) => {
+        const at = css.indexOf(`${v.root}[data-ock-theme='${theme}']`);
+        return css.slice(at, css.indexOf('}', at));
+      };
+      expect(block('shadcn')).toContain('hsl(var(--background))'); // v3: HSL の三つ組を hsl() で包む
+      expect(block('shadcn-v4')).not.toContain('hsl(');            // v4: 変数が色そのもの
     });
 
     it('トークン定義の外に生の色が残っていない', () => {

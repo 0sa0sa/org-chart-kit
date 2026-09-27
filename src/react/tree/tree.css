@@ -18,6 +18,7 @@
   --_ock-grid: var(--ock-grid, rgba(228, 239, 230, 0.035));
   --_ock-shadow: var(--ock-shadow, rgba(0, 0, 0, 0.45));
   --_ock-font-body: var(--ock-font-body, 'JetBrains Mono', 'M PLUS 1 Code', ui-monospace, monospace);
+  --_ock-radius: var(--ock-radius, 0);
   --_ock-accent-soft: var(--ock-accent-soft, color-mix(in srgb, var(--_ock-accent) 8%, transparent));
   --_ock-accent-line: var(--ock-accent-line, color-mix(in srgb, var(--_ock-accent) 25%, transparent));
   --_ock-glow: var(--ock-glow, color-mix(in srgb, var(--_ock-accent) 45%, transparent));
@@ -55,6 +56,46 @@
   --_ock-grid: var(--ock-grid, rgba(22, 32, 26, 0.07));
   --_ock-shadow: var(--ock-shadow, rgba(40, 36, 28, 0.14));
 }
+}
+
+/* shadcn/ui のテーマ変数（--background, --primary, --radius …）をそのまま読むプリセット。
+   ホスト側の light/dark（.dark クラス）の切替にも自動で追従する。
+   'shadcn' は Tailwind v3 系（HSL の三つ組）、'shadcn-v4' は色そのもの（oklch など）を持つ変数向け。 */
+.ock-tree[data-ock-theme='shadcn'] {
+  --_ock-bg: var(--ock-bg, hsl(var(--background)));
+  --_ock-surface: var(--ock-surface, hsl(var(--card)));
+  --_ock-surface-2: var(--ock-surface-2, hsl(var(--muted)));
+  --_ock-border: var(--ock-border, hsl(var(--border)));
+  --_ock-border-strong: var(--ock-border-strong, color-mix(in srgb, hsl(var(--border)), hsl(var(--foreground)) 14%));
+  --_ock-text: var(--ock-text, hsl(var(--foreground)));
+  --_ock-text-2: var(--ock-text-2, hsl(var(--muted-foreground)));
+  --_ock-text-3: var(--ock-text-3, color-mix(in srgb, hsl(var(--muted-foreground)) 65%, hsl(var(--background))));
+  --_ock-accent: var(--ock-accent, hsl(var(--primary)));
+  --_ock-member: var(--ock-member, hsl(var(--chart-2)));
+  --_ock-danger: var(--ock-danger, hsl(var(--destructive)));
+  --_ock-changed: var(--ock-changed, hsl(var(--sidebar-ring, 217.2 91.2% 59.8%)));
+  --_ock-grid: var(--ock-grid, color-mix(in srgb, hsl(var(--foreground)) 7%, transparent));
+  --_ock-shadow: var(--ock-shadow, rgba(0, 0, 0, 0.08));
+  --_ock-font-body: var(--ock-font-body, inherit);
+  --_ock-radius: var(--ock-radius, var(--radius, 0.375rem));
+}
+.ock-tree[data-ock-theme='shadcn-v4'] {
+  --_ock-bg: var(--ock-bg, var(--background));
+  --_ock-surface: var(--ock-surface, var(--card));
+  --_ock-surface-2: var(--ock-surface-2, var(--muted));
+  --_ock-border: var(--ock-border, var(--border));
+  --_ock-border-strong: var(--ock-border-strong, color-mix(in srgb, var(--border), var(--foreground) 14%));
+  --_ock-text: var(--ock-text, var(--foreground));
+  --_ock-text-2: var(--ock-text-2, var(--muted-foreground));
+  --_ock-text-3: var(--ock-text-3, color-mix(in srgb, var(--muted-foreground) 65%, var(--background)));
+  --_ock-accent: var(--ock-accent, var(--primary));
+  --_ock-member: var(--ock-member, var(--chart-2));
+  --_ock-danger: var(--ock-danger, var(--destructive));
+  --_ock-changed: var(--ock-changed, var(--sidebar-ring, oklch(0.623 0.214 259.815)));
+  --_ock-grid: var(--ock-grid, color-mix(in srgb, var(--foreground) 7%, transparent));
+  --_ock-shadow: var(--ock-shadow, rgba(0, 0, 0, 0.08));
+  --_ock-font-body: var(--ock-font-body, inherit);
+  --_ock-radius: var(--ock-radius, var(--radius, 0.375rem));
 }
 
 .ock-tree {
@@ -211,6 +252,7 @@
 @keyframes ock-kg-pulse { from { stroke-opacity: 0.3; } to { stroke-opacity: 1; } }
 
 .ock-tree .brain-drop-hint {
+  border-radius: var(--_ock-radius);
   position: absolute;
   top: 14px;
   left: 50%;
@@ -236,6 +278,7 @@
 
 /* ── change log ── */
 .ock-tree .brain-log {
+  border-radius: var(--_ock-radius);
   position: absolute;
   left: 14px;
   bottom: 12px;
@@ -261,6 +304,7 @@
 .ock-tree .log-tools button,
 .ock-tree .insp-actions button,
 .ock-tree .insp-chips button {
+  border-radius: var(--_ock-radius);
   background: none;
   border: 1px solid var(--_ock-border-strong);
   padding: 3px 8px;
@@ -319,12 +363,13 @@
 .ock-tree .insp-path { font-size: 10.5px; color: var(--_ock-text-3); line-height: 1.7; }
 .ock-tree .insp-path button { background: none; border: 0; padding: 0; cursor: pointer; color: var(--_ock-text-2); }
 .ock-tree .insp-path button:hover { color: var(--_ock-accent); }
-.ock-tree .insp-stats { display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--_ock-border); }
+.ock-tree .insp-stats { border-radius: var(--_ock-radius); display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--_ock-border); }
 .ock-tree .insp-stats div { padding: 8px 10px; font-size: 10px; color: var(--_ock-text-3); display: flex; flex-direction: column; gap: 2px; }
 .ock-tree .insp-stats div + div { border-left: 1px solid var(--_ock-border); }
 .ock-tree .insp-stats b { font-size: 18px; color: var(--_ock-text); font-weight: 500; }
 .ock-tree .insp-field { display: flex; flex-direction: column; gap: 4px; font-size: 10px; color: var(--_ock-text-3); letter-spacing: 0.08em; }
 .ock-tree .insp-field select {
+  border-radius: var(--_ock-radius);
   background: var(--_ock-bg);
   border: 1px solid var(--_ock-border-strong);
   padding: 6px 8px;
@@ -362,6 +407,7 @@
 .ock-tree .kg-edge-org { stroke-linejoin: round; }
 .ock-tree .kg-node.is-drag { filter: drop-shadow(0 0 6px var(--_ock-glow)); }
 .ock-tree .brain-fit {
+  border-radius: var(--_ock-radius);
   position: absolute;
   top: 12px;
   right: 14px;
