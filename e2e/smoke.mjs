@@ -46,26 +46,34 @@ await page.goto(`${URL}/#a`);
 await page.waitForTimeout(3000);
 await shot('a-overview');
 {
-  const design = await box('g.kg-org', 'デザイン室', '.kg-dot');
-  const biz = await box('g.kg-org', 'ビジネス本部', '.kg-dot');
-  await drag(design, { x: biz.x, y: biz.y + 4 }, {
+  const design = await box('g.kg-card[data-org="design"]', '', '.kg-card-bg');
+  const biz = await box('g.kg-card[data-org="biz"]', '', '.kg-card-bg');
+  await drag({ x: design.x, y: design.y - 20 }, { x: biz.x, y: biz.y }, {
     hold: async () => {
       check('tree: ドラッグ中に付け替え先を表示', (await page.textContent('.brain-drop-hint')).includes('ビジネス本部'));
       await shot('a-dragging');
     },
   });
   check('tree: 組織を枝ごと付け替え', (await count()) === 1);
+  // 責任者のグリフはカードの「席」（同じ組織の他のメンバーより上）にいる
+  const seat = await page.evaluate(() => {
+    const top = (g) => g.getBoundingClientRect().y;
+    const heads = [...document.querySelectorAll('g.kg-member.is-head')];
+    return heads.length > 5 && heads.every((h) =>
+      [...document.querySelectorAll(`g.kg-member[data-org="${h.getAttribute('data-org')}"]:not(.is-head)`)].every((o) => top(o) > top(h) + 2));
+  });
+  check('tree: 責任者はカードの席に座っている', seat);
   check('tree: 変更ログに記録', (await page.textContent('.brain-log')).includes('デザイン室'));
 
-  const kato = await box('g.kg-member', '加藤', '.kg-dot');
-  const infra = await box('g.kg-org', '基盤チーム', '.kg-dot');
+  const kato = await box('g.kg-member[data-name^="加藤"]', '', '.kg-av');
+  const infra = await box('g.kg-card[data-org="infra"]', '', '.kg-card-bg');
   await drag(kato, infra);
   check('tree: メンバーを異動', (await count()) === 2);
 
   // 自分の配下へは移せない
-  const prod = await box('g.kg-org', 'プロダクト本部', '.kg-dot');
-  const web = await box('g.kg-org', 'Webチーム', '.kg-dot');
-  await drag(prod, web, {
+  const prod = await box('g.kg-card[data-org="prod"]', '', '.kg-card-bg');
+  const web = await box('g.kg-card[data-org="web"]', '', '.kg-card-bg');
+  await drag({ x: prod.x, y: prod.y - 20 }, web, {
     // 組織をつかむと配下も一緒に運ばれるので、自分の配下は落とし先の候補にならない
     hold: async () => check('tree: 自分の配下は落とし先にならない', !(await page.textContent('.brain-drop-hint')).includes('Webチーム')),
   });
@@ -81,8 +89,18 @@ await page.click('.switch button:nth-child(2)');
 await page.waitForTimeout(1200);
 await shot('b-overview');
 {
+  // 責任者の印は区画の上座（同じ区画の直属の石の中でいちばん上）にある
+  const kamiza = await page.evaluate(() => {
+    const cy = (g) => { const r = g.getBoundingClientRect(); return r.y + r.height / 2; };
+    const heads = [...document.querySelectorAll('g.t-stone.is-head')];
+    return heads.length > 5 && heads.every((h) =>
+      [...document.querySelectorAll(`g.t-stone[data-org="${h.getAttribute('data-org')}"]`)].every((o) => o === h || cy(o) >= cy(h) - 0.5));
+  });
+  check('map: 責任者の印は上座にある', kamiza);
+}
+{
   const before = await count();
-  const kato = await box('g.t-stone', '加');
+  const kato = await box('g.t-stone[data-name^="加藤"]', '');
   const cs = await box('g.t-org.d2', 'カスタマーサクセス部');
   await drag(kato, { x: cs.x, y: cs.y + cs.w * 0.25 }, {
     hold: async () => {

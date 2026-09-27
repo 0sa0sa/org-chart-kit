@@ -153,9 +153,6 @@
 }
 .ock-tree .brain-legend span { display: flex; align-items: center; gap: 6px; }
 .ock-tree .brain-legend i { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
-.ock-tree .lg-org { border: 1.5px solid var(--_ock-text); }
-.ock-tree .lg-mem { background: var(--_ock-member); }
-.ock-tree .lg-head { background: var(--_ock-bg); box-shadow: 0 0 0 2px var(--_ock-text); }
 .ock-tree .lg-delta { border: 1.5px dashed var(--_ock-changed); }
 
 .ock-tree .brain-body {
@@ -203,27 +200,13 @@
 .ock-tree .brain-canvas svg { display: block; cursor: grab; touch-action: none; user-select: none; }
 .ock-tree .brain-canvas svg.is-dragging { cursor: grabbing; }
 
-.ock-tree .kg-ring { fill: none; stroke: var(--_ock-border-strong); stroke-dasharray: 2 6; }
-.ock-tree .kg-ring-label { fill: var(--_ock-text-3); text-anchor: middle; letter-spacing: 0.1em; }
 
 .ock-tree .kg-edge { fill: none; transition: opacity 0.35s var(--ease, ease); }
 .ock-tree .kg-edge-org { stroke: var(--_ock-text-2); stroke-opacity: 0.45; stroke-width: 1.1; }
-.ock-tree .kg-edge-member { stroke: var(--_ock-member); stroke-opacity: 0.16; stroke-width: 0.7; }
 .ock-tree .kg-edge.is-hot.kg-edge-org { stroke: var(--_ock-accent); stroke-opacity: 0.85; }
-.ock-tree .kg-edge.is-hot.kg-edge-member { stroke-opacity: 0.5; }
 .ock-tree .kg-edge.is-detaching { stroke-dasharray: 3 4; stroke-opacity: 0.25; }
 
 .ock-tree .kg-node { cursor: pointer; transition: opacity 0.35s ease; }
-.ock-tree .kg-node.is-drag { cursor: grabbing; }
-.ock-tree .kg-org .kg-dot { fill: var(--_ock-bg); stroke: var(--_ock-text); stroke-width: 1.4; }
-.ock-tree .kg-org .kg-core { fill: var(--_ock-text); opacity: 0.85; }
-.ock-tree .kg-org:hover .kg-dot { stroke: var(--_ock-accent); }
-.ock-tree .kg-org.is-root .kg-dot { stroke: var(--_ock-accent); stroke-width: 2; filter: drop-shadow(0 0 8px var(--_ock-glow)); }
-.ock-tree .kg-org.is-root .kg-core { fill: var(--_ock-accent); }
-.ock-tree .kg-member .kg-dot { fill: var(--_ock-member); }
-.ock-tree .kg-member .kg-dot.is-head { fill: var(--_ock-bg); stroke: var(--_ock-text); stroke-width: 2; }
-.ock-tree .kg-member:hover .kg-dot { fill: var(--_ock-text); }
-.ock-tree .kg-sel { fill: none; stroke: var(--_ock-accent); stroke-width: 1.4; }
 .ock-tree .kg-delta {
   fill: none;
   stroke: var(--_ock-changed);
@@ -232,16 +215,6 @@
   animation: ock-kg-spin 6s linear infinite;
 }
 @keyframes ock-kg-spin { to { stroke-dashoffset: -60; } }
-.ock-tree .kg-label {
-  fill: var(--_ock-text-2);
-  text-anchor: middle;
-  paint-order: stroke;
-  stroke: var(--_ock-bg);
-  stroke-width: 3px;
-  pointer-events: none;
-}
-.ock-tree .kg-label-org { fill: var(--_ock-text); font-weight: 500; }
-.ock-tree .kg-count { fill: var(--_ock-text-3); }
 
 .ock-tree .kg-ghost path { fill: none; stroke-width: 1.6; stroke-dasharray: 5 4; animation: ock-kg-spin 1.2s linear infinite; }
 .ock-tree .kg-ghost circle { fill: none; stroke-width: 1.5; animation: ock-kg-pulse 0.9s ease-in-out infinite alternate; }
@@ -397,15 +370,7 @@
 .ock-tree .insp-actions button.danger:hover { border-color: var(--_ock-danger); color: var(--_ock-danger); }
 .ock-tree .insp-input { font-size: 18px; font-weight: 700; }
 
-/* ── tree 版 ── */
-.ock-tree .kg-level { text-anchor: end; }
-.ock-tree .kg-label-org { dominant-baseline: auto; }
-.ock-tree .kg-label-member { text-anchor: start; fill: var(--_ock-text-2); }
-.ock-tree .kg-edge-member { fill: none; }
-.ock-tree .kg-edge-member path { fill: none; stroke: var(--_ock-member); stroke-opacity: 0.22; stroke-width: 0.8; }
-.ock-tree .kg-edge-member.is-hot path { stroke-opacity: 0.6; }
 .ock-tree .kg-edge-org { stroke-linejoin: round; }
-.ock-tree .kg-node.is-drag { filter: drop-shadow(0 0 6px var(--_ock-glow)); }
 .ock-tree .brain-fit {
   border-radius: var(--_ock-radius);
   position: absolute;
@@ -422,3 +387,91 @@
 /* 詳細パネルはキャンバスに重ねる（開閉でキャンバス幅＝カメラが変わらないように） */
 .ock-tree .brain-body { position: relative; }
 .ock-tree .brain-insp { position: absolute; top: 0; right: 0; bottom: 0; z-index: 3; box-shadow: -18px 0 40px var(--_ock-shadow); }
+
+/* ── カード（組織） ── */
+.ock-tree .kg-card { cursor: grab; transition: opacity 0.35s ease; }
+.ock-tree .kg-card.is-drag { cursor: grabbing; filter: drop-shadow(0 10px 18px var(--_ock-shadow)); }
+.ock-tree .kg-card-bg {
+  fill: var(--_ock-surface);
+  stroke: var(--_ock-border-strong);
+  stroke-width: 1;
+  rx: var(--_ock-radius);
+  transition: stroke 0.2s, fill 0.2s;
+}
+.ock-tree .kg-card:hover .kg-card-bg { stroke: var(--_ock-text-3); }
+.ock-tree .kg-card.is-root .kg-card-bg { stroke: var(--_ock-accent); filter: drop-shadow(0 0 10px var(--_ock-glow)); }
+.ock-tree .kg-card.is-sel .kg-card-bg { stroke: var(--_ock-accent); stroke-width: 1.8; }
+.ock-tree .kg-card.is-target .kg-card-bg { fill: var(--_ock-accent-soft); stroke: var(--_ock-accent); }
+.ock-tree .kg-card-delta {
+  fill: none;
+  stroke: var(--_ock-changed);
+  stroke-width: 1.2;
+  stroke-dasharray: 4 3;
+  rx: var(--_ock-radius);
+  animation: ock-kg-spin 6s linear infinite;
+}
+.ock-tree .kg-port { fill: var(--_ock-bg); stroke: var(--_ock-border-strong); stroke-width: 1; }
+.ock-tree .kg-card.is-root .kg-port { stroke: var(--_ock-accent); }
+.ock-tree .kg-card-core { fill: var(--_ock-text-3); }
+.ock-tree .kg-card.is-root .kg-card-core { fill: var(--_ock-accent); filter: drop-shadow(0 0 4px var(--_ock-glow)); }
+.ock-tree .kg-card.is-changed .kg-card-core { fill: var(--_ock-changed); }
+.ock-tree .kg-eyebrow { fill: var(--_ock-text-3); font-size: 8.5px; letter-spacing: 0.12em; }
+.ock-tree .kg-card-name { fill: var(--_ock-text); font-weight: 700; letter-spacing: 0.01em; }
+.ock-tree .kg-hair { stroke: var(--_ock-border); stroke-width: 1; }
+.ock-tree .kg-hair.is-faint { stroke-dasharray: 1 3; }
+.ock-tree .kg-head-name { fill: var(--_ock-text); font-size: 11.5px; font-weight: 500; }
+.ock-tree .kg-head-title { fill: var(--_ock-text-3); font-size: 8.5px; letter-spacing: 0.04em; }
+.ock-tree .kg-vacant-seat { fill: none; stroke: var(--_ock-member); stroke-width: 1.1; stroke-dasharray: 3 2.5; }
+.ock-tree .kg-vacant-label { fill: var(--_ock-member); font-size: 10px; letter-spacing: 0.06em; }
+.ock-tree .kg-overflow { fill: var(--_ock-text-2); font-size: 9.5px; text-anchor: end; }
+.ock-tree .kg-card text { pointer-events: none; user-select: none; }
+
+/* 引いたとき（LOD）は名前だけを大きく */
+.ock-tree .kg-card-lod { display: none; }
+.ock-tree .kg-card-lod text { fill: var(--_ock-text); font-weight: 700; text-anchor: middle; }
+.ock-tree .kg-card-lod .kg-lod-count { fill: var(--_ock-text-3); font-weight: 400; }
+.ock-tree svg.is-lod .kg-card-lod { display: inline; }
+.ock-tree svg.is-lod .kg-card-detail,
+.ock-tree svg.is-lod .kg-member { display: none; }
+
+/* ── グリフ（メンバー） ── */
+.ock-tree .kg-member { cursor: grab; transition: opacity 0.3s ease; }
+.ock-tree .kg-av {
+  fill: var(--_ock-surface-2);
+  stroke: color-mix(in srgb, var(--_ock-member) 55%, var(--_ock-border-strong));
+  stroke-width: 1;
+  transition: stroke 0.15s, fill 0.15s;
+}
+.ock-tree .kg-av-char { fill: var(--_ock-text); font-size: 11px; font-weight: 600; text-anchor: middle; pointer-events: none; user-select: none; }
+.ock-tree .kg-member.is-head .kg-av { fill: var(--_ock-text); stroke: var(--_ock-text); }
+.ock-tree .kg-member.is-head .kg-av-char { fill: var(--_ock-bg); }
+.ock-tree .kg-member:hover .kg-av { stroke: var(--_ock-accent); stroke-width: 1.6; }
+.ock-tree .kg-member.is-sel .kg-av { stroke: var(--_ock-accent); stroke-width: 2.2; }
+.ock-tree .kg-member.is-drag { cursor: grabbing; filter: drop-shadow(0 0 8px var(--_ock-glow)); }
+.ock-tree .kg-member.is-hidden { opacity: 0 !important; pointer-events: none; }
+
+.ock-tree .kg-tip rect { fill: var(--_ock-text); rx: 3px; }
+.ock-tree .kg-tip text { fill: var(--_ock-bg); text-anchor: middle; font-weight: 600; }
+.ock-tree .kg-tip .kg-tip-sub { fill: color-mix(in srgb, var(--_ock-bg) 70%, var(--_ock-text)); font-weight: 400; }
+
+.ock-tree .kg-edge-org { stroke-linejoin: round; stroke-linecap: round; }
+.ock-tree .kg-ghost-frame { fill: none; stroke-width: 1.4; stroke-dasharray: 5 4; rx: var(--_ock-radius); animation: ock-kg-pulse 0.9s ease-in-out infinite alternate; }
+.ock-tree .kg-ghost.ok .kg-ghost-frame { stroke: var(--_ock-accent); }
+.ock-tree .kg-ghost.ng .kg-ghost-frame { stroke: var(--_ock-danger); }
+
+/* 凡例 */
+.ock-tree .lg-card { width: 13px !important; height: 9px !important; border: 1px solid var(--_ock-text-2); border-radius: var(--_ock-radius) !important; }
+.ock-tree .lg-glyph {
+  width: 15px !important;
+  height: 15px !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  font-style: normal;
+  font-size: 8.5px;
+  background: var(--_ock-surface-2);
+  border: 1px solid color-mix(in srgb, var(--_ock-member) 55%, var(--_ock-border-strong));
+  color: var(--_ock-text);
+}
+.ock-tree .lg-glyph.is-head { background: var(--_ock-text); color: var(--_ock-bg); border-color: var(--_ock-text); }
+.ock-tree .lg-vacant { border: 1px dashed var(--_ock-member); }

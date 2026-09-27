@@ -78,7 +78,8 @@ export function OrgMap({ store, title = '組織の地図', subtitle = 'ORG MAP',
       return { id, kind: 'org', children: kids.length ? kids : [{ id: `pad:${id}`, kind: 'pad' }] };
     };
     const root = hierarchy(build(ROOT_ID)).sum((d) =>
-      d.kind === 'member' ? (heads.has(d.id) ? 1.5 : 1) : d.kind === 'pad' ? 2.6 : 0,
+      // 責任者も他の石と同じ大きさにする（下で席を入れ替えるため、半径をそろえる）
+      d.kind === 'member' ? 1 : d.kind === 'pad' ? 2.6 : 0,
     );
     const packed = pack<PData>()
       .size([S, S])
@@ -89,6 +90,15 @@ export function OrgMap({ store, title = '組織の地図', subtitle = 'ORG MAP',
       if (n.data.kind === 'org') orgs.set(n.data.id, n);
       else if (n.data.kind === 'member') members.set(n.data.id, n);
     });
+    // 責任者は区画の「上座」に：同じ区画の直属の石のうち、いちばん上にある石と席を入れ替える
+    for (const o of Object.values(state.orgs)) {
+      const head = o.headId ? members.get(o.headId) : undefined;
+      if (!head || head.parent?.data.id !== o.id) continue;
+      const top = (head.parent.children ?? [])
+        .filter((c) => c.data.kind === 'member')
+        .reduce((a, c) => (c.y < a.y ? c : a), head);
+      if (top !== head) [head.x, head.y, top.x, top.y] = [top.x, top.y, head.x, head.y];
+    }
     return { orgs, members, heads };
   }, [state]);
 
@@ -349,7 +359,8 @@ export function OrgMap({ store, title = '組織の地図', subtitle = 'ORG MAP',
             const m = state.members[n.data.id];
             const isHead = layout.heads.has(m.id);
             const r = n.r * 0.86;
-            const showName = n.r * scale > 17;
+            // 名前は石が十分大きく見えるときだけ（隣と重ならない大きさ）。それ以外はホバーで出す
+            const showName = n.r * scale > 26;
             const cls = [
               't-stone',
               isHead ? 'is-head' : '',
@@ -363,12 +374,15 @@ export function OrgMap({ store, title = '組織の地図', subtitle = 'ORG MAP',
                 key={m.id}
                 className={cls}
                 style={{ transform: `translate(${n.x}px, ${n.y}px)` }}
+                data-name={m.name}
+                data-org={m.orgId}
                 onPointerDown={(e) => onDown(e, 'member', m.id)}
                 onPointerEnter={(e) => !drag && setHover({ id: m.id, x: e.clientX, y: e.clientY })}
                 onPointerLeave={() => setHover((h) => (h?.id === m.id ? null : h))}
               >
                 {isHead ? (
-                  <rect className="t-stone-body" x={-r} y={-r} width={r * 2} height={r * 2} rx={r * 0.22} />
+                  // 角印は円に内接する大きさ（対角線が石の円からはみ出さない）
+                  <rect className="t-stone-body" x={-r * 0.82} y={-r * 0.82} width={r * 1.64} height={r * 1.64} rx={r * 0.2} />
                 ) : (
                   <circle className="t-stone-body" r={r} />
                 )}

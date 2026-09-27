@@ -1,6 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type PointerEvent as RPointerEvent } from 'react';
 import { forceSimulation, forceX, forceY, type Simulation, type SimulationNodeDatum } from 'd3-force';
-import { hierarchy, tree } from 'd3-hierarchy';
 import {
   ROOT_ID,
   canMoveOrg,
@@ -13,6 +12,7 @@ import {
   revertAction,
   subtreeIds,
   touched,
+  type Member,
   type OrgState,
 } from '../../core/model';
 import { describe } from '../../core/describe';
@@ -22,24 +22,36 @@ import { useSize } from '../useSize';
 
 /**
  * OrgTree — FounderOS の G-Brain を参考にした組織グラフ（ツリー版）。
- * 見た目（黒地・緑アクセント・等幅）は Brain を踏襲し、配置は組織図らしく
+ * 見た目（黒地・緑アクセント・等幅・発光するコア）は Brain を踏襲し、配置は組織図らしく
  * ルートを最上段に置いて下へ枝を広げるトップダウンのツリーにする。
- * メンバーは所属組織の直下に縦に並ぶ「葉」。
- * 編集は「ノードを別の組織ノードへ重ねる」= 付け替え。組織をつかむと配下の枝ごと持ち上がる。
+ *
+ * - 組織は「コンソールカード」: 深さと人数の見出し、組織名、責任者の席、直属メンバーのグリフ（名字の一文字）。
+ * - 葉だけを子に持つ組織は、子を縦に積んでレールでつなぐ（横に広がりすぎない）。
+ * - 編集は「カードやグリフを別のカードに重ねる」= 付け替え／異動。組織をつかむと配下の枝ごと持ち上がる。
  */
 
-const COL = 138; // 兄弟の横間隔
-const ROW = 150; // 深さ1段の縦間隔
-const LEAF_GAP = 15; // メンバーの縦間隔
+// カードの寸法（ワールド座標）
+const W = 164; // カード幅
+const PAD = 12;
+const AV = 22; // グリフ（アバター）の直径
+const AV_GAP = 5;
+const PER_ROW = Math.floor((W - PAD * 2 + AV_GAP) / (AV + AV_GAP)); // 1行のグリフ数
+const MAX_ROWS = 3;
+const HEAD_Y = 66; // 責任者の席（中心）
+const ROW0_Y = 98; // メンバー1行目（中心）
+const VGAP = 46; // 親カードの下端 → 子カードの上端
+const HGAP = 26; // 兄弟の横間隔
+const STACK_GAP = 12; // 縦積みの間隔
+const INDENT = 22; // 縦積みの字下げ（レールの分）
+const RAIL_X = 12; // 親カード左端からレールまで
+const LOD_K = 0.56; // これより引くと、カードの中身を畳んで名前だけを大きく出す
 
 type Kind = 'org' | 'member';
-type SimNode = SimulationNodeDatum & { id: string; kind: Kind; depth: number; r: number; tx: number; ty: number };
+type SimNode = SimulationNodeDatum & { id: string; kind: Kind; tx: number; ty: number; hidden?: boolean };
 type Sel = { kind: Kind; id: string } | null;
 type Drag = { id: string; kind: Kind; sx: number; sy: number; moved: boolean; carry: Set<string> };
 type Target = { id: string; valid: boolean; reason?: string } | null;
-
-const orgR = (depth: number, hc: number) =>
-  depth === 0 ? 18 : Math.max(7, 13 - depth * 1.6) + Math.min(4, Math.sqrt(hc) * 0.7);
+type Link = 'elbow' | 'rail';
 
 export type OrgTreeProps = {
   store: OrgEditor;
@@ -73,14 +85,14 @@ export function OrgTree({ store, title = '組織グラフ', eyebrow = 'org chart
   const panRef = useRef<{ x: number; y: number; cx: number; cy: number; moved: boolean } | null>(null);
 
   const touchedIds = useMemo(() => touched(changes), [changes]);
-  const layout = useMemo(() => treeLayout(state), [state]);
+  const layout = useMemo(() => cardLayout(state), [state]);
 
-  // ── simulation：ツリー上の定位置へバネで寄せる（構造が変わると枝がするりと組み替わる） ──
+  // ── simulation：定位置へバネで寄せる（構造が変わるとカードとグリフがするりと組み替わる） ──
   useEffect(() => {
     const sim = forceSimulation<SimNode>()
-      .force('x', forceX<SimNode>((d) => d.tx).strength(0.22))
-      .force('y', forceY<SimNode>((d) => d.ty).strength(0.22))
-      .velocityDecay(0.32)
+      .force('x', forceX<SimNode>((d) => d.tx).strength(0.24))
+      .force('y', forceY<SimNode>((d) => d.ty).strength(0.24))
+      .velocityDecay(0.34)
       .alphaDecay(0.035)
       .on('tick', () => setTick((t) => t + 1));
     simRef.current = sim;
@@ -94,16 +106,14 @@ export function OrgTree({ store, title = '組織グラフ', eyebrow = 'org chart
     const next = new Map<string, SimNode>();
     for (const [id, slot] of layout.slots) {
       const kind: Kind = state.orgs[id] ? 'org' : 'member';
-      const depth = kind === 'org' ? depthOf(state, id) : depthOf(state, state.members[id].orgId) + 1;
-      const r = kind === 'org' ? orgR(depth, headcount(state, id)) : 3.6;
       let n = prev.get(id);
       if (!n) {
-        // 新しいノードは親の位置から生えてくる
+        // 新しいカードは親の位置から、グリフは所属カードの位置から現れる
         const parent = kind === 'org' ? state.orgs[id].parentId : state.members[id].orgId;
         const p = parent ? prev.get(parent) : undefined;
-        n = { id, kind, depth, r, tx: slot.x, ty: slot.y, x: p?.x ?? slot.x, y: p?.y ?? slot.y };
+        n = { id, kind, tx: slot.x, ty: slot.y, x: p?.x ?? slot.x, y: p?.y ?? slot.y };
       }
-      Object.assign(n, { depth, r, tx: slot.x, ty: slot.y });
+      Object.assign(n, { tx: slot.x, ty: slot.y, hidden: slot.hidden });
       next.set(id, n);
     }
     nodesRef.current = next;
@@ -116,10 +126,10 @@ export function OrgTree({ store, title = '組織グラフ', eyebrow = 'org chart
   const fit = () => {
     if (!size.w) return;
     const b = layout.bounds;
-    const bw = b.x1 - b.x0 + 80;
-    const bh = b.y1 - b.y0 + 90;
-    const k = Math.min(1.2, (size.w - 40) / bw, (size.h - 40) / bh);
-    setCam({ k, x: size.w / 2 - ((b.x0 + b.x1) / 2) * k, y: Math.max(56, (size.h - bh * k) / 2 + 40) - b.y0 * k });
+    const bw = b.x1 - b.x0 + 60;
+    const bh = b.y1 - b.y0 + 60;
+    const k = Math.min(1.1, (size.w - 32) / bw, (size.h - 40) / bh);
+    setCam({ k, x: size.w / 2 - ((b.x0 + b.x1) / 2) * k, y: Math.max(24, (size.h - bh * k) / 2) + 30 * k - b.y0 * k });
   };
   // 初回とコンテナのサイズが変わった時（並列表示への切替など）に全体を収め直す
   const fitted = useRef('');
@@ -145,7 +155,7 @@ export function OrgTree({ store, title = '組織グラフ', eyebrow = 'org chart
       const px = e.clientX - r.left;
       const py = e.clientY - r.top;
       setCam((c) => {
-        const k = Math.min(3.2, Math.max(0.25, c.k * Math.exp(-e.deltaY * 0.0015)));
+        const k = Math.min(3, Math.max(0.2, c.k * Math.exp(-e.deltaY * 0.0015)));
         return { k, x: px - ((px - c.x) / c.k) * k, y: py - ((py - c.y) / c.k) * k };
       });
     };
@@ -154,21 +164,32 @@ export function OrgTree({ store, title = '組織グラフ', eyebrow = 'org chart
   }, []);
 
   const centerOn = (id: string) => {
-    const slot = layout.slots.get(id);
+    const orgId = state.orgs[id] ? id : state.members[id]?.orgId;
+    const slot = orgId ? layout.slots.get(orgId) : undefined;
     if (!slot || !size.w) return;
-    setCam((c) => ({ ...c, x: size.w / 2 - slot.x * c.k, y: size.h / 2.6 - slot.y * c.k }));
+    const h = layout.heights.get(orgId!) ?? 0;
+    setCam((c) => {
+      const k = Math.max(c.k, 0.8); // 詳細が読める距離まで寄る
+      return { k, x: size.w / 2 - slot.x * k, y: size.h / 2.4 - (slot.y + h / 2) * k };
+    });
   };
 
   // ── drag & drop（付け替え） ───────────────────────────────────────────────
-  const findTarget = (d: Drag, wx: number, wy: number): Target => {
-    let best: { n: SimNode; dist: number } | null = null;
+  const cardAt = (d: Drag, wx: number, wy: number): Target => {
+    let best: { id: string; dist: number } | null = null;
     for (const n of nodesRef.current.values()) {
       if (n.kind !== 'org' || d.carry.has(n.id)) continue;
-      const dist = Math.hypot((n.x ?? 0) - wx, (n.y ?? 0) - wy);
-      if (dist < n.r + 28 && (!best || dist < best.dist)) best = { n, dist };
+      const h = layout.heights.get(n.id) ?? 0;
+      const x0 = (n.x ?? 0) - W / 2;
+      const y0 = n.y ?? 0;
+      // カードの矩形との距離（中なら0）。少しだけ外側でも拾う
+      const dx = Math.max(x0 - wx, 0, wx - (x0 + W));
+      const dy = Math.max(y0 - wy, 0, wy - (y0 + h));
+      const dist = Math.hypot(dx, dy);
+      if (dist <= 14 && (!best || dist < best.dist)) best = { id: n.id, dist };
     }
     if (!best) return null;
-    const id = best.n.id;
+    const id = best.id;
     if (d.kind === 'member') {
       const same = state.members[d.id]?.orgId === id;
       return { id, valid: !same, reason: same ? '現在の所属' : undefined };
@@ -212,24 +233,29 @@ export function OrgTree({ store, title = '組織グラフ', eyebrow = 'org chart
     setCam((c) => ({ ...c, x: p.cx + dx, y: p.cy + dy }));
   };
 
+  const grabOffset = useRef({ x: 0, y: 0 });
   const onMove = (e: RPointerEvent) => {
     if (drag && drag.id !== ROOT_ID) {
       const moved = drag.moved || Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) > 4;
       if (!moved) return;
-      if (!drag.moved) {
-        setDrag({ ...drag, moved: true });
-        simRef.current?.alphaTarget(0.3).restart();
-      }
       const head = nodesRef.current.get(drag.id);
       if (!head) return;
       const w = toWorld(e.clientX, e.clientY);
-      const dx = w.x - head.tx;
-      const dy = w.y - head.ty;
+      if (!drag.moved) {
+        // つかんだ場所を保ったまま運ぶ（カードの角が指先に飛ばない）
+        const s = toWorld(drag.sx, drag.sy);
+        grabOffset.current = { x: (head.x ?? 0) - s.x, y: (head.y ?? 0) - s.y };
+        setDrag({ ...drag, moved: true });
+        setHover(null);
+        simRef.current?.alphaTarget(0.3).restart();
+      }
+      const dx = w.x + grabOffset.current.x - head.tx;
+      const dy = w.y + grabOffset.current.y - head.ty;
       for (const id of drag.carry) {
         const n = nodesRef.current.get(id);
         if (n) (n.fx = n.tx + dx), (n.fy = n.ty + dy);
       }
-      setTarget(findTarget(drag, w.x, w.y));
+      setTarget(cardAt(drag, w.x, w.y));
       return;
     }
     pan(e);
@@ -251,7 +277,7 @@ export function OrgTree({ store, title = '組織グラフ', eyebrow = 'org chart
             : { type: 'moveOrg', id: drag.id, parentId: target.id },
         );
         setSel({ kind: drag.kind, id: drag.id });
-      } else simRef.current?.alpha(0.6).restart(); // 元の枝へ戻る
+      } else simRef.current?.alpha(0.6).restart(); // 元の場所へ戻る
       setDrag(null);
       setTarget(null);
       panRef.current = null;
@@ -271,7 +297,7 @@ export function OrgTree({ store, title = '組織グラフ', eyebrow = 'org chart
     for (const p of pathOf(state, orgId)) orgs.add(p.id);
     const members = new Set(
       Object.values(state.members)
-        .filter((m) => (sel.kind === 'org' ? sub.has(m.orgId) : m.id === sel.id))
+        .filter((m) => (sel.kind === 'org' ? sub.has(m.orgId) : m.id === sel.id || m.orgId === orgId))
         .map((m) => m.id),
     );
     return { orgs, members };
@@ -279,14 +305,25 @@ export function OrgTree({ store, title = '組織グラフ', eyebrow = 'org chart
 
   const lit = (id: string, kind: Kind) => !focus || (kind === 'org' ? focus.orgs : focus.members).has(id);
 
-  const heads = useMemo(() => new Set(Object.values(state.orgs).map((o) => o.headId).filter(Boolean)), [state]);
-  const nodes = [...nodesRef.current.values()].sort((a, b) => (a.kind === b.kind ? 0 : a.kind === 'member' ? -1 : 1));
   const get = (id: string) => nodesRef.current.get(id);
+  const orgNodes = [...nodesRef.current.values()].filter((n) => n.kind === 'org');
+  const memberNodes = [...nodesRef.current.values()].filter((n) => n.kind === 'member');
+  // 運んでいるものは最前面へ
+  const carried = (id: string) => !!drag?.moved && drag.carry.has(id);
+  const byCarry = (a: SimNode, b: SimNode) => Number(carried(a.id)) - Number(carried(b.id));
   const dragNode = drag?.moved ? get(drag.id) : undefined;
   const targetNode = target ? get(target.id) : undefined;
-  const showMemberNames = cam.k > 0.8;
-  const labelScale = 1 / Math.max(0.75, Math.min(cam.k, 1.5));
-  const b = layout.bounds;
+  const lod = cam.k < LOD_K;
+  const hoverMember = hover && state.members[hover] && !drag?.moved ? state.members[hover] : null;
+
+  const linkPath = (childId: string) => {
+    const o = state.orgs[childId];
+    const s = o?.parentId ? get(o.parentId) : undefined;
+    const t = get(childId);
+    if (!s || !t) return null;
+    const sh = layout.heights.get(s.id) ?? 0;
+    return layout.links.get(childId) === 'rail' ? rail(s, sh, t) : elbow(s, sh, t);
+  };
 
   return (
     <div className={`ock-tree${className ? ` ${className}` : ''}`} data-ock-theme={theme} style={tokenStyle(tokens, style)}>
@@ -299,9 +336,10 @@ export function OrgTree({ store, title = '組織グラフ', eyebrow = 'org chart
           </h1>
         </div>
         <div className="brain-legend">
-          <span><i className="lg-org" />組織</span>
-          <span><i className="lg-mem" />メンバー</span>
-          <span><i className="lg-head" />責任者</span>
+          <span><i className="lg-card" />組織</span>
+          <span><i className="lg-glyph">加</i>メンバー</span>
+          <span><i className="lg-glyph is-head">中</i>責任者</span>
+          <span><i className="lg-vacant" />空席</span>
           <span><i className="lg-delta" />変更あり</span>
         </div>
       </header>
@@ -318,115 +356,116 @@ export function OrgTree({ store, title = '組織グラフ', eyebrow = 'org chart
             onPointerDown={onBgDown}
             onPointerMove={onMove}
             onPointerUp={onUp}
-            className={drag?.moved ? 'is-dragging' : ''}
+            className={`${drag?.moved ? 'is-dragging' : ''}${lod ? ' is-lod' : ''}`}
           >
             <defs>
-              <radialGradient id={`${uid}-core`} r="1">
-                <stop offset="0" stopColor="var(--_ock-accent)" stopOpacity="0.35" />
+              <radialGradient id={`${uid}-core`} r="0.5">
+                <stop offset="0" stopColor="var(--_ock-accent)" stopOpacity="0.28" />
                 <stop offset="1" stopColor="var(--_ock-accent)" stopOpacity="0" />
               </radialGradient>
             </defs>
             <g transform={`translate(${cam.x},${cam.y}) scale(${cam.k})`}>
-              {/* 階層の段（L1, L2, …） */}
-              {Array.from({ length: layout.maxDepth }, (_, i) => (
-                <g key={i}>
-                  <line x1={b.x0 - 60} x2={b.x1 + 60} y1={(i + 1) * ROW} y2={(i + 1) * ROW} className="kg-ring" />
-                  <text x={b.x0 - 64} y={(i + 1) * ROW + 3} className="kg-ring-label kg-level" style={{ fontSize: 9 * labelScale }}>
-                    L{i + 1}
-                  </text>
-                </g>
-              ))}
-              <circle r={64} fill={`url(#${uid}-core)`} />
+              {/* コアの発光（ルートカードの背後） */}
+              {get(ROOT_ID) && (
+                <ellipse
+                  cx={get(ROOT_ID)!.x}
+                  cy={(get(ROOT_ID)!.y ?? 0) + (layout.heights.get(ROOT_ID) ?? 0) / 2}
+                  rx={W * 1.4}
+                  ry={W * 0.9}
+                  fill={`url(#${uid}-core)`}
+                />
+              )}
 
-              {/* 組織の枝（直角の組織図コネクタ） */}
+              {/* 組織の枝 */}
               {Object.values(state.orgs).map((o) => {
-                const s = o.parentId ? get(o.parentId) : undefined;
-                const t = get(o.id);
-                if (!s || !t) return null;
-                const on = lit(s.id, 'org') && lit(t.id, 'org');
-                const hot = !!focus && on;
-                const lifted = drag?.moved && drag.id === o.id;
+                const d = o.parentId ? linkPath(o.id) : null;
+                if (!d) return null;
+                const on = lit(o.parentId!, 'org') && lit(o.id, 'org');
                 return (
                   <path
-                    key={`${s.id}>${t.id}`}
-                    d={elbow(s, t)}
-                    className={`kg-edge kg-edge-org${hot ? ' is-hot' : ''}${lifted ? ' is-detaching' : ''}`}
-                    style={{ opacity: on ? undefined : 0.08 }}
+                    key={`${o.parentId}>${o.id}`}
+                    d={d}
+                    className={`kg-edge kg-edge-org${focus && on ? ' is-hot' : ''}${drag?.moved && drag.id === o.id ? ' is-detaching' : ''}`}
+                    style={{ opacity: on ? undefined : 0.1 }}
                   />
-                );
-              })}
-
-              {/* メンバーの葉（組織から垂れる細い幹） */}
-              {Object.values(state.orgs).map((o) => {
-                const s = get(o.id);
-                const ms = membersOf(state, o.id);
-                const last = ms.length ? get(ms[ms.length - 1].id) : undefined;
-                if (!s || !last) return null;
-                const on = lit(o.id, 'org');
-                const x = (s.x ?? 0) + LEAF_X;
-                return (
-                  <g key={`leaf:${o.id}`} className={`kg-edge kg-edge-member${focus && on ? ' is-hot' : ''}`} style={{ opacity: on ? undefined : 0.08 }}>
-                    <path
-                      d={
-                        `M${s.x},${(s.y ?? 0) + s.r}V${(s.y ?? 0) + s.r + 6}H${x}V${last.y}` +
-                        ms.map((m) => {
-                          const mn = get(m.id);
-                          return mn && !(drag?.moved && drag.id === m.id) ? `M${x},${mn.y}H${(mn.x ?? 0) - mn.r}` : '';
-                        }).join('')
-                      }
-                    />
-                  </g>
                 );
               })}
 
               {/* 付け替えのゴーストエッジ */}
               {dragNode && targetNode && (
                 <g className={`kg-ghost ${target?.valid ? 'ok' : 'ng'}`}>
-                  <path d={drag?.kind === 'member' ? `M${targetNode.x},${targetNode.y}L${dragNode.x},${dragNode.y}` : elbow(targetNode, dragNode)} />
-                  <circle cx={targetNode.x} cy={targetNode.y} r={targetNode.r + 10} />
+                  <path
+                    d={
+                      drag?.kind === 'member'
+                        ? `M${targetNode.x},${(targetNode.y ?? 0) + (layout.heights.get(targetNode.id) ?? 0) / 2}L${dragNode.x},${dragNode.y}`
+                        : elbow(targetNode, layout.heights.get(targetNode.id) ?? 0, dragNode)
+                    }
+                  />
+                  <rect
+                    x={(targetNode.x ?? 0) - W / 2 - 6}
+                    y={(targetNode.y ?? 0) - 6}
+                    width={W + 12}
+                    height={(layout.heights.get(targetNode.id) ?? 0) + 12}
+                    className="kg-ghost-frame"
+                  />
                 </g>
               )}
 
-              {/* ノード */}
-              {nodes.map((n) => {
-                const on = lit(n.id, n.kind);
-                const isSel = sel?.id === n.id;
-                const delta = n.kind === 'org' ? touchedIds.orgs.has(n.id) : touchedIds.members.has(n.id);
-                const isHead = heads.has(n.id);
-                const carried = !!drag?.moved && drag.carry.has(n.id);
-                const memberName =
-                  n.kind === 'member' && (showMemberNames || hover === n.id || isSel || carried || (focus && sel?.kind === 'org' && on))
-                    ? state.members[n.id]?.name
-                    : null;
+              {/* 組織カード */}
+              {orgNodes.sort(byCarry).map((n) => (
+                <OrgCard
+                  key={n.id}
+                  node={n}
+                  state={state}
+                  h={layout.heights.get(n.id) ?? 0}
+                  overflow={layout.overflow.get(n.id) ?? 0}
+                  k={cam.k}
+                  lit={lit(n.id, 'org')}
+                  selected={sel?.kind === 'org' && sel.id === n.id}
+                  changed={touchedIds.orgs.has(n.id)}
+                  carried={carried(n.id)}
+                  isDropTarget={target?.id === n.id}
+                  onPointerDown={(e) => onNodeDown(e, n)}
+                />
+              ))}
+
+              {/* メンバーのグリフ */}
+              {memberNodes.sort(byCarry).map((n) => {
+                const m = state.members[n.id];
+                if (!m) return null;
+                const org = state.orgs[m.orgId];
+                const isHead = org?.headId === m.id;
+                const isSel = sel?.kind === 'member' && sel.id === m.id;
                 return (
                   <g
                     key={n.id}
                     transform={`translate(${n.x ?? 0},${n.y ?? 0})`}
-                    className={`kg-node kg-${n.kind}${isSel ? ' is-sel' : ''}${n.id === ROOT_ID ? ' is-root' : ''}${carried ? ' is-drag' : ''}`}
-                    style={{ opacity: on ? 1 : 0.14 }}
+                    className={[
+                      'kg-node kg-member',
+                      isHead ? 'is-head' : '',
+                      isSel ? 'is-sel' : '',
+                      touchedIds.members.has(m.id) ? 'is-changed' : '',
+                      carried(m.id) ? 'is-drag' : '',
+                      n.hidden && !carried(m.id) ? 'is-hidden' : '',
+                    ].join(' ')}
+                    data-name={m.name}
+                    data-org={m.orgId}
+                    style={{ opacity: lit(m.id, 'member') ? undefined : 0.16 }}
                     onPointerDown={(e) => onNodeDown(e, n)}
-                    onPointerEnter={() => setHover(n.id)}
-                    onPointerLeave={() => setHover((h) => (h === n.id ? null : h))}
+                    onPointerEnter={() => setHover(m.id)}
+                    onPointerLeave={() => setHover((h) => (h === m.id ? null : h))}
                   >
-                    {delta && <circle r={n.r + 5} className="kg-delta" />}
-                    {isSel && <circle r={n.r + 4} className="kg-sel" />}
-                    <circle r={n.r} className={`kg-dot${isHead ? ' is-head' : ''}`} />
-                    {n.kind === 'org' && <circle r={Math.max(2, n.r * 0.32)} className="kg-core" />}
-                    {n.kind === 'org' && (
-                      <text y={-n.r - 7} className="kg-label kg-label-org" style={{ fontSize: 10.5 * labelScale }}>
-                        {state.orgs[n.id]?.name}
-                        <tspan className="kg-count"> ·{headcount(state, n.id)}</tspan>
-                      </text>
-                    )}
-                    {memberName && (
-                      <text x={8} dy="0.34em" className="kg-label kg-label-member" style={{ fontSize: 8.5 * labelScale }}>
-                        {memberName}
-                        {isHead && <tspan className="kg-count"> ◎</tspan>}
-                      </text>
-                    )}
+                    {touchedIds.members.has(m.id) && <circle r={AV / 2 + 4} className="kg-delta" />}
+                    <circle r={AV / 2} className="kg-dot kg-av" />
+                    <text className="kg-av-char" dy="0.36em">{m.name[0]}</text>
                   </g>
                 );
               })}
+
+              {/* グリフのツールチップ */}
+              {hoverMember && get(hoverMember.id) && (
+                <GlyphTip m={hoverMember} x={get(hoverMember.id)!.x ?? 0} y={get(hoverMember.id)!.y ?? 0} k={cam.k} state={state} />
+              )}
             </g>
           </svg>
 
@@ -437,13 +476,13 @@ export function OrgTree({ store, title = '組織グラフ', eyebrow = 'org chart
                   ? `→ ${state.orgs[target.id].name} に${drag?.kind === 'member' ? '異動' : '付け替え'}`
                   : `× ${target.reason}`
                 : drag?.kind === 'org'
-                  ? '枝ごと運んで、新しい親の組織ノードに重ねる'
-                  : '組織ノードに重ねて離す'}
+                  ? '枝ごと運んで、新しい親のカードに重ねる'
+                  : '異動先のカードに重ねて離す'}
             </div>
           )}
 
           <button className="brain-fit" onClick={fit} title="全体を表示">⤢ fit</button>
-          <div className="brain-hint">drag → 組織に重ねる = 付け替え　click = 詳細　wheel = zoom　⌘Z = undo</div>
+          <div className="brain-hint">drag → カードに重ねる = 付け替え・異動　click = 詳細　wheel = zoom</div>
           <ChangeLog store={store} />
         </div>
 
@@ -461,46 +500,236 @@ export function OrgTree({ store, title = '組織グラフ', eyebrow = 'org chart
   );
 }
 
-const LEAF_X = -6; // メンバーの列の x（組織ノード中心からのずれ）
+// ── カード ──────────────────────────────────────────────────────────────────
 
-/**
- * トップダウンの組織図レイアウト。組織は d3 の tidy tree で並べ、
- * メンバーは所属組織の直下に縦一列で垂らす（深い段ほど下へ伸びる葉）。
- */
-function treeLayout(s: OrgState) {
-  type TD = { id: string; children: TD[] };
-  const build = (id: string): TD => ({ id, children: childOrgs(s, id).map((c) => build(c.id)) });
-  const root = tree<TD>()
-    .nodeSize([COL, ROW])
-    .separation((a, b) => (a.parent === b.parent ? 1 : 1.2))(hierarchy(build(ROOT_ID)));
+function OrgCard({
+  node,
+  state,
+  h,
+  overflow,
+  k,
+  lit,
+  selected,
+  changed,
+  carried,
+  isDropTarget,
+  onPointerDown,
+}: {
+  node: SimNode;
+  state: OrgState;
+  h: number;
+  overflow: number;
+  k: number;
+  lit: boolean;
+  selected: boolean;
+  changed: boolean;
+  carried: boolean;
+  isDropTarget: boolean;
+  onPointerDown: (e: RPointerEvent) => void;
+}) {
+  const o = state.orgs[node.id];
+  if (!o) return null;
+  const isRoot = o.id === ROOT_ID;
+  const head = o.headId ? state.members[o.headId] : undefined;
+  const hc = headcount(state, o.id);
+  const direct = membersOf(state, o.id).length;
+  const kids = childOrgs(state, o.id).length;
+  const nameSize = o.name.length > 10 ? 12 : 13.5;
+  // 引いたとき（LOD）は名前だけを、画面上で読める大きさに拡大して出す
+  const lodSize = Math.min(22, Math.max(13, 11 / k), (W - 20) / Math.max(4, o.name.length));
 
-  const slots = new Map<string, { x: number; y: number }>();
-  const bounds = { x0: 0, x1: 0, y0: -30, y1: 0 };
-  let maxDepth = 0;
-  root.each((n) => {
-    slots.set(n.data.id, { x: n.x, y: n.y });
-    maxDepth = Math.max(maxDepth, n.depth);
-    const ms = membersOf(s, n.data.id);
-    ms.forEach((m, i) => slots.set(m.id, { x: n.x + LEAF_X + 12, y: n.y + 30 + i * LEAF_GAP }));
-    bounds.x0 = Math.min(bounds.x0, n.x - COL / 2);
-    bounds.x1 = Math.max(bounds.x1, n.x + COL / 2);
-    bounds.y1 = Math.max(bounds.y1, n.y + 30 + ms.length * LEAF_GAP);
-  });
-  return { slots, bounds, maxDepth };
+  return (
+    <g
+      transform={`translate(${(node.x ?? 0) - W / 2},${node.y ?? 0})`}
+      className={[
+        'kg-org kg-card',
+        isRoot ? 'is-root' : '',
+        selected ? 'is-sel' : '',
+        changed ? 'is-changed' : '',
+        carried ? 'is-drag' : '',
+        isDropTarget ? 'is-target' : '',
+        head ? '' : 'is-vacant',
+      ].join(' ')}
+      data-org={o.id}
+      style={{ opacity: lit ? undefined : 0.16 }}
+      onPointerDown={onPointerDown}
+    >
+      <rect className="kg-card-bg" width={W} height={h} />
+      {changed && <rect className="kg-card-delta" x={-4} y={-4} width={W + 8} height={h + 8} />}
+      <circle className="kg-dot kg-port" cx={W / 2} cy={0} r={2.6} />
+      {kids > 0 && <circle className="kg-port" cx={W / 2} cy={h} r={2.6} />}
+
+      <g className="kg-card-detail">
+        <circle className="kg-card-core" cx={PAD + 3} cy={PAD + 6} r={isRoot ? 3.4 : 2.6} />
+        <text className="kg-eyebrow" x={PAD + 12} y={PAD + 9}>
+          {isRoot ? 'ROOT' : `L${depthOf(state, o.id)}`} · {hc}名{kids ? ` · ${kids}組織` : ''}
+        </text>
+        <text className="kg-card-name" x={PAD} y={PAD + 29} style={{ fontSize: nameSize }}>
+          {o.name}
+        </text>
+        <line className="kg-hair" x1={PAD} x2={W - PAD} y1={PAD + 38} y2={PAD + 38} />
+        {head ? (
+          <>
+            <text className="kg-head-name" x={PAD + AV + 8} y={HEAD_Y - 2}>{head.name}</text>
+            <text className="kg-head-title" x={PAD + AV + 8} y={HEAD_Y + 10}>{head.title} · {head.grade}</text>
+          </>
+        ) : (
+          <>
+            <circle className="kg-vacant-seat" cx={PAD + AV / 2} cy={HEAD_Y} r={AV / 2} />
+            <text className="kg-vacant-label" x={PAD + AV + 8} y={HEAD_Y + 4}>責任者 空席</text>
+          </>
+        )}
+        {direct - (head ? 1 : 0) > 0 && <line className="kg-hair is-faint" x1={PAD} x2={W - PAD} y1={HEAD_Y + 18} y2={HEAD_Y + 18} />}
+        {overflow > 0 && (
+          <text className="kg-overflow" x={W - PAD} y={h - PAD + 1}>+{overflow}</text>
+        )}
+      </g>
+
+      <g className="kg-card-lod">
+        <text x={W / 2} y={h / 2 - 2} style={{ fontSize: lodSize }}>{o.name}</text>
+        <text className="kg-lod-count" x={W / 2} y={h / 2 + lodSize * 0.9} style={{ fontSize: lodSize * 0.62 }}>
+          {hc}名
+        </text>
+      </g>
+    </g>
+  );
 }
 
-/** 親の下端 → 段の中間で横に渡り → 子の上端へ降りる、角の丸い直角コネクタ */
-function elbow(s: SimulationNodeDatum & { r?: number }, t: SimulationNodeDatum & { r?: number }) {
+function GlyphTip({ m, x, y, k, state }: { m: Member; x: number; y: number; k: number; state: OrgState }) {
+  const s = 1 / Math.max(0.7, Math.min(k, 1.6));
+  const org = state.orgs[m.orgId];
+  const line1 = m.name;
+  const line2 = `${m.title} · ${m.grade}${org?.headId === m.id ? ' · 責任者' : ''}`;
+  const w = Math.max(line1.length * 12, line2.length * 7.6) * s + 18 * s;
+  return (
+    <g className="kg-tip" transform={`translate(${x},${y - AV / 2 - 8})`} style={{ pointerEvents: 'none' }}>
+      <rect x={-w / 2} y={-40 * s} width={w} height={34 * s} />
+      <text y={-25 * s} style={{ fontSize: 12 * s }}>{line1}</text>
+      <text className="kg-tip-sub" y={-12 * s} style={{ fontSize: 9.5 * s }}>{line2}</text>
+    </g>
+  );
+}
+
+/**
+ * カードのレイアウト（ワールド座標）。組織の位置はカードの上辺中央。
+ * - 子が複数あり、1つでも孫を持つ場合は横に並べて親を中央に（直角コネクタ）。
+ * - 子がすべて葉なら、親の下に字下げして縦に積む（左のレールでつなぐ）。
+ * メンバーは所属カードの中：責任者は「席」、それ以外は下のグリフ列。
+ */
+function cardLayout(s: OrgState) {
+  const slots = new Map<string, { x: number; y: number; hidden?: boolean }>();
+  const heights = new Map<string, number>();
+  const links = new Map<string, Link>();
+  const overflow = new Map<string, number>();
+
+  const others = (id: string) => {
+    const o = s.orgs[id];
+    return membersOf(s, id).filter((m) => m.id !== o.headId);
+  };
+  const cardH = (id: string) => {
+    const n = others(id).length;
+    const rows = Math.min(MAX_ROWS, Math.ceil(n / PER_ROW));
+    return rows ? ROW0_Y + (rows - 1) * (AV + AV_GAP) + AV / 2 + PAD : HEAD_Y + AV / 2 + PAD;
+  };
+  const isLeaf = (id: string) => childOrgs(s, id).length === 0;
+  const stacked = (id: string) => {
+    const kids = childOrgs(s, id);
+    return kids.length > 0 && kids.every((c) => isLeaf(c.id));
+  };
+
+  // 部分木の幅
+  const widthMemo = new Map<string, number>();
+  const width = (id: string): number => {
+    if (widthMemo.has(id)) return widthMemo.get(id)!;
+    const kids = childOrgs(s, id);
+    const w = !kids.length ? W : stacked(id) ? W + INDENT : kids.reduce((a, c) => a + width(c.id), 0) + HGAP * (kids.length - 1);
+    widthMemo.set(id, Math.max(W, w));
+    return widthMemo.get(id)!;
+  };
+
+  const bounds = { x0: Infinity, x1: -Infinity, y0: Infinity, y1: -Infinity };
+  const placeCard = (id: string, cx: number, top: number) => {
+    const h = cardH(id);
+    heights.set(id, h);
+    slots.set(id, { x: cx, y: top });
+    bounds.x0 = Math.min(bounds.x0, cx - W / 2);
+    bounds.x1 = Math.max(bounds.x1, cx + W / 2);
+    bounds.y0 = Math.min(bounds.y0, top);
+    bounds.y1 = Math.max(bounds.y1, top + h);
+    // メンバー：責任者の席、残りはグリフ列
+    const o = s.orgs[id];
+    const left = cx - W / 2;
+    if (o.headId && s.members[o.headId]?.orgId === id) slots.set(o.headId, { x: left + PAD + AV / 2, y: top + HEAD_Y });
+    const rest = others(id);
+    const cap = PER_ROW * MAX_ROWS;
+    rest.forEach((m, i) => {
+      const j = Math.min(i, cap - 1);
+      slots.set(m.id, {
+        x: left + PAD + AV / 2 + (j % PER_ROW) * (AV + AV_GAP),
+        y: top + ROW0_Y + Math.floor(j / PER_ROW) * (AV + AV_GAP),
+        hidden: i >= cap - 1 && rest.length > cap,
+      });
+    });
+    overflow.set(id, rest.length > cap ? rest.length - cap + 1 : 0);
+    return h;
+  };
+
+  const place = (id: string, left: number, top: number) => {
+    const kids = childOrgs(s, id);
+    const w = width(id);
+    if (!kids.length) {
+      placeCard(id, left + w / 2, top);
+      return;
+    }
+    if (stacked(id)) {
+      const h = placeCard(id, left + W / 2, top);
+      let y = top + h + VGAP * 0.6;
+      for (const c of kids) {
+        links.set(c.id, 'rail');
+        placeCard(c.id, left + INDENT + W / 2, y);
+        y += heights.get(c.id)! + STACK_GAP;
+      }
+      return;
+    }
+    // 横並び：子を先に置いて、親を子の中心の中央へ
+    const h = cardH(id);
+    let x = left + (w - (kids.reduce((a, c) => a + width(c.id), 0) + HGAP * (kids.length - 1))) / 2;
+    const centers: number[] = [];
+    for (const c of kids) {
+      links.set(c.id, 'elbow');
+      place(c.id, x, top + h + VGAP);
+      centers.push(slots.get(c.id)!.x);
+      x += width(c.id) + HGAP;
+    }
+    placeCard(id, (centers[0] + centers[centers.length - 1]) / 2, top);
+  };
+  place(ROOT_ID, -width(ROOT_ID) / 2, 0);
+
+  return { slots, heights, links, overflow, bounds };
+}
+
+/** 親カードの下辺 → 段の中間で横に渡り → 子カードの上辺へ降りる、角の丸い直角コネクタ */
+function elbow(s: SimulationNodeDatum, sh: number, t: SimulationNodeDatum) {
   const sx = s.x ?? 0;
-  const sy = (s.y ?? 0) + (s.r ?? 0);
+  const sy = (s.y ?? 0) + sh;
   const tx = t.x ?? 0;
-  const ty = (t.y ?? 0) - (t.r ?? 0) - 18; // 子の名前ラベルの上で止める
-  const my = sy + Math.max(20, (ty - sy) * 0.72);
+  const ty = t.y ?? 0;
+  const my = sy + Math.max(10, (ty - sy) / 2);
   const dx = tx - sx;
-  const rr = Math.min(8, Math.abs(dx) / 2, Math.abs(my - sy) / 2);
+  const rr = Math.min(8, Math.abs(dx) / 2, Math.abs(my - sy) / 2, Math.abs(ty - my) / 2);
   if (Math.abs(dx) < 1) return `M${sx},${sy}V${ty}`;
   const dir = Math.sign(dx);
   return `M${sx},${sy}V${my - rr}Q${sx},${my} ${sx + dir * rr},${my}H${tx - dir * rr}Q${tx},${my} ${tx},${my + rr}V${ty}`;
+}
+
+/** 縦積み用：親カード左寄りのレールを下り、子カードの左辺へ入る */
+function rail(s: SimulationNodeDatum, sh: number, t: SimulationNodeDatum) {
+  const rx = (s.x ?? 0) - W / 2 + RAIL_X;
+  const sy = (s.y ?? 0) + sh;
+  const tx = (t.x ?? 0) - W / 2;
+  const ty = (t.y ?? 0) + 22;
+  const rr = Math.min(7, Math.abs(tx - rx) / 2);
+  return `M${rx},${sy}V${ty - rr}Q${rx},${ty} ${rx + rr},${ty}H${tx}`;
 }
 
 // ── 左: ディレクトリ ─────────────────────────────────────────────────────────
